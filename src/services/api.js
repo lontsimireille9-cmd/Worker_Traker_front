@@ -1,6 +1,8 @@
 import { auth } from "../firebase/config";
 
-const API_BASE_URL = import.meta.env.VITE_API_URL?.replace(/\/$/, "") || "";
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
+  "https://worker-traker-back.onrender.com";
 
 async function request(path, options = {}) {
   const user = auth.currentUser;
