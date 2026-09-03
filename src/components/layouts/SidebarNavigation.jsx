@@ -11,6 +11,7 @@ import {
   FaTasks,
   FaUserCog,
   FaUsers,
+  FaSignOutAlt,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 
@@ -137,9 +138,12 @@ export default function SidebarNavigation({ onToggle }) {
         <button
           type="button"
           onClick={logout}
-          className={["mt-3 text-xs font-medium text-accent transition hover:underline", isCollapsed ? "block w-full text-center" : ""].join(" ")}
+          title="Se déconnecter"
+          aria-label="Se déconnecter"
+          className={["mt-3 flex min-h-10 items-center rounded-xl border border-red-200 bg-red-50 text-xs font-semibold text-red-600 transition hover:bg-red-100 hover:text-red-700", isCollapsed ? "w-full justify-center" : "w-full gap-2 px-3"].join(" ")}
         >
-          {isCollapsed ? "Sortir" : "Se déconnecter"}
+          <FaSignOutAlt />
+          {!isCollapsed && "Se déconnecter"}
         </button>
       </div>
     </aside>
