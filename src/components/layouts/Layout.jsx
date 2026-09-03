@@ -13,7 +13,6 @@ const MAIN_PATHS = {
   "/equipes": "Équipes",
   "/profil": "Profil",
   "/parametres": "Parametres",
-  "/entreprises": "Entreprises",
 };
 
 function getPageTitle(pathname) {
@@ -52,13 +51,13 @@ export default function Layout() {
     <div className="min-h-screen flex bg-canvas">
       <MobileHeader title={title} showBackButton={showBackButton} onBack={() => navigate(-1)} />
 
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <SidebarNavigation onToggle={setIsSidebarCollapsed} />
       </div>
 
       <main
-        className={`flex-1 max-w-full px-4 pb-20 pt-16 transition-all duration-300 md:px-8 md:pb-8 md:pt-8 ${
-          isSidebarCollapsed ? "md:ml-20" : "md:ml-64"
+        className={`min-w-0 flex-1 max-w-full px-4 pb-24 pt-16 transition-all duration-300 sm:px-6 lg:px-8 lg:pb-8 lg:pt-8 ${
+          isSidebarCollapsed ? "lg:ml-[82px]" : "lg:ml-72"
         }`}
       >
         <Outlet />

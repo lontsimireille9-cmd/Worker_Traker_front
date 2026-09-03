@@ -1,45 +1,112 @@
-import React from "react";
+import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { FaHome, FaClock, FaTasks, FaUsers, FaLayerGroup, FaUserCog, FaHistory } from "react-icons/fa";
+import {
+  FaClock,
+  FaCog,
+  FaEllipsisH,
+  FaHistory,
+  FaHome,
+  FaLayerGroup,
+  FaTasks,
+  FaTimes,
+  FaUserCog,
+  FaUsers,
+} from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 
-const BASE_TABS = [
+const ESSENTIAL_TABS = [
   { path: "/", label: "Accueil", icon: <FaHome /> },
   { path: "/presence", label: "Présence", icon: <FaClock /> },
   { path: "/taches", label: "Tâches", icon: <FaTasks /> },
-  { path: "/equipes", label: "Équipes", icon: <FaLayerGroup /> },
   { path: "/profil", label: "Profil", icon: <FaUserCog /> },
 ];
-
-const EMPLOYEE_HISTORY_TAB = { path: "/historique", label: "Historique", icon: <FaHistory /> };
-const SETTINGS_TAB = { path: "/parametres", label: "Reglages", icon: <FaUserCog /> };
-const MANAGER_TAB = { path: "/employes", label: "Employés", icon: <FaUsers /> };
 
 export default function MobileBottomNavigation() {
   const location = useLocation();
   const { profile } = useAuth();
+  const [moreOpen, setMoreOpen] = useState(false);
   const isEmployee = profile?.role === "EMPLOYEE";
   const isManager = ["ADMIN", "MANAGER", "SUPER_ADMIN"].includes(profile?.role);
-  const baseTabs = isEmployee ? [BASE_TABS[0], BASE_TABS[1], BASE_TABS[2], EMPLOYEE_HISTORY_TAB, BASE_TABS[3], BASE_TABS[4]] : BASE_TABS;
-  const TABS = isManager ? [...baseTabs, MANAGER_TAB, SETTINGS_TAB] : [...baseTabs, SETTINGS_TAB];
+  const secondaryTabs = [
+    ...(isEmployee ? [{ path: "/historique", label: "Historique", icon: <FaHistory /> }] : []),
+    { path: "/equipes", label: "Équipes", icon: <FaLayerGroup /> },
+    ...(isManager ? [{ path: "/employes", label: "Employés", icon: <FaUsers /> }] : []),
+    { path: "/parametres", label: "Paramètres", icon: <FaCog /> },
+  ];
+
+  function isActive(path) {
+    return path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
+  }
+
+  function handleMoreClick() {
+    setMoreOpen((value) => !value);
+  }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-line bg-surface shadow-lg md:hidden">
-      <div className="flex h-16 items-center justify-around">
-        {TABS.map((tab) => {
-          const isActive = tab.path === "/" ? location.pathname === "/" : location.pathname.startsWith(tab.path);
-          return (
+    <>
+      {moreOpen && (
+        <button
+          type="button"
+          aria-label="Fermer le menu secondaire"
+          className="fixed inset-0 z-40 bg-ink/20 backdrop-blur-[1px] lg:hidden"
+          onClick={() => setMoreOpen(false)}
+        />
+      )}
+      <div
+        className={[
+          "fixed bottom-[68px] left-3 right-3 z-50 rounded-2xl border border-line bg-surface p-2 shadow-xl transition-all duration-200 lg:hidden",
+          moreOpen ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0",
+        ].join(" ")}
+      >
+        <p className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Accès rapides</p>
+        <div className="grid grid-cols-2 gap-1">
+          {secondaryTabs.map((tab) => (
             <Link
               key={tab.path}
               to={tab.path}
-              className={`flex flex-1 flex-col items-center justify-center p-2 ${isActive ? "font-semibold text-primary" : "text-ink/60"}`}
+              onClick={() => setMoreOpen(false)}
+              className={[
+                "flex min-h-11 items-center gap-3 rounded-xl px-3 text-sm transition-colors",
+                isActive(tab.path) ? "bg-primary text-white" : "text-ink/70 hover:bg-surface-2",
+              ].join(" ")}
             >
-              <span className="text-lg leading-none">{tab.icon}</span>
-              <span className="mt-1 text-xs leading-none">{tab.label}</span>
+              <span className="w-5 text-center text-sm">{tab.icon}</span>
+              <span className="truncate">{tab.label}</span>
             </Link>
-          );
-        })}
+          ))}
+        </div>
       </div>
-    </nav>
+
+      <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-line bg-surface/95 px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(18,24,27,0.08)] backdrop-blur lg:hidden" aria-label="Navigation mobile">
+        <div className="mx-auto flex h-[68px] max-w-xl items-center justify-around gap-1">
+          {ESSENTIAL_TABS.map((tab) => (
+            <Link
+              key={tab.path}
+              to={tab.path}
+              className={[
+                "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] transition-colors",
+                isActive(tab.path) ? "bg-primary/10 font-semibold text-primary" : "text-ink/55 hover:bg-surface-2 hover:text-ink",
+              ].join(" ")}
+            >
+              <span className="text-base leading-none">{tab.icon}</span>
+              <span className="max-w-full truncate">{tab.label}</span>
+            </Link>
+          ))}
+          <button
+            type="button"
+            onClick={handleMoreClick}
+            aria-expanded={moreOpen}
+            aria-label={moreOpen ? "Fermer les accès rapides" : "Ouvrir les accès rapides"}
+            className={[
+              "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-xl px-1 py-2 text-[11px] transition-colors",
+              moreOpen || secondaryTabs.some((tab) => isActive(tab.path)) ? "bg-primary/10 font-semibold text-primary" : "text-ink/55 hover:bg-surface-2 hover:text-ink",
+            ].join(" ")}
+          >
+            <span className="text-base leading-none">{moreOpen ? <FaTimes /> : <FaEllipsisH />}</span>
+            <span>{moreOpen ? "Fermer" : "Plus"}</span>
+          </button>
+        </div>
+      </nav>
+    </>
   );
 }
