@@ -3,8 +3,8 @@ import { Link, useLocation } from "react-router-dom";
 import {
   FaChevronLeft,
   FaChevronRight,
-  FaClock,
   FaCog,
+  FaChartBar,
   FaHistory,
   FaHome,
   FaLayerGroup,
@@ -16,7 +16,6 @@ import { useAuth } from "../../context/AuthContext";
 
 const PRIMARY_ITEMS = [
   { path: "/", label: "Tableau de bord", icon: <FaHome /> },
-  { path: "/presence", label: "Présence", icon: <FaClock /> },
   { path: "/taches", label: "Tâches", icon: <FaTasks /> },
 ];
 
@@ -27,6 +26,7 @@ const ACCOUNT_ITEMS = [
   { path: "/profil", label: "Mon profil", icon: <FaUserCog /> },
   { path: "/parametres", label: "Paramètres", icon: <FaCog /> },
 ];
+const REPORTS_ITEM = { path: "/rapports", label: "Rapports", icon: <FaChartBar /> };
 
 export default function SidebarNavigation({ onToggle }) {
   const location = useLocation();
@@ -46,6 +46,7 @@ export default function SidebarNavigation({ onToggle }) {
     ...(isEmployee ? [HISTORY_ITEM] : []),
     TEAM_ITEM,
     ...(isManager ? [EMPLOYEES_ITEM] : []),
+    ...(profile?.role === "SUPER_ADMIN" ? [REPORTS_ITEM] : []),
   ];
 
   useEffect(() => {
@@ -144,4 +145,3 @@ export default function SidebarNavigation({ onToggle }) {
     </aside>
   );
 }
-

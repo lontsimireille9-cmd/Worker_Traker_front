@@ -16,7 +16,7 @@ export default function Teams() {
   const [selectedTeam, setSelectedTeam] = useState(null);
   const [leaderModalOpen, setLeaderModalOpen] = useState(false);
   const [teamMembersModalOpen, setTeamMembersModalOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", department: "", leaderId: "" });
+  const [form, setForm] = useState({ name: "", department: "", leaderId: "", memberIds: [] });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -36,7 +36,7 @@ export default function Teams() {
     try {
       await api.post("/teams", form);
       setSuccess("Équipe créée avec succès.");
-      setForm({ name: "", department: "", leaderId: "" });
+      setForm({ name: "", department: "", leaderId: "", memberIds: [] });
       load();
     } catch (err) {
       setError(err.message || "Impossible de créer l’équipe.");
@@ -58,6 +58,15 @@ export default function Teams() {
     setTeamMembersModalOpen(true);
   }
 
+  function toggleMember(memberId) {
+    setForm((current) => ({
+      ...current,
+      memberIds: current.memberIds.includes(memberId)
+        ? current.memberIds.filter((id) => id !== memberId)
+        : [...current.memberIds, memberId],
+    }));
+  }
+
   return (
     <div>
       <Title as="h1" variant="page" className="mb-1">
@@ -77,6 +86,17 @@ export default function Teams() {
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
+            </div>
+            <div className="min-w-[260px] flex-1">
+              <p className="mb-1.5 text-sm font-medium text-ink/70">Membres de l’équipe</p>
+              <div className="max-h-28 overflow-y-auto rounded-xl border border-line bg-surface-2 p-2">
+                {users.length > 0 ? users.map((user) => (
+                  <label key={user.uid} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-surface">
+                    <input type="checkbox" checked={form.memberIds.includes(user.uid)} onChange={() => toggleMember(user.uid)} className="rounded border-line text-primary focus:ring-primary" />
+                    <span className="truncate">{user.name || user.email}</span>
+                  </label>
+                )) : <p className="px-2 py-1 text-xs text-muted">Aucun membre disponible.</p>}
+              </div>
             </div>
             <div className="w-52">
               <Input

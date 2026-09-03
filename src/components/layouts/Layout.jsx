@@ -13,6 +13,7 @@ const MAIN_PATHS = {
   "/equipes": "Équipes",
   "/profil": "Profil",
   "/parametres": "Parametres",
+  "/rapports": "Rapports",
 };
 
 function getPageTitle(pathname) {

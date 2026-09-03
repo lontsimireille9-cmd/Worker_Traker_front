@@ -29,5 +29,11 @@ export const api = {
   get: (path) => request(path),
   post: (path, body = {}) => request(path, { method: "POST", body: JSON.stringify(body) }),
   patch: (path, body = {}) => request(path, { method: "PATCH", body: JSON.stringify(body) }),
+  download: async (path) => {
+    const user = auth.currentUser;
+    const token = user ? await user.getIdToken() : null;
+    const res = await fetch(`${API_BASE_URL}/api${path}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!res.ok) throw new Error(`Erreur de telechargement (${res.status})`);
+    return res.blob();
+  },
 };
-

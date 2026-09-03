@@ -16,6 +16,7 @@ export default function TaskEditorDialog({
   title = "Nouvelle tâche",
   submitLabel = "Enregistrer",
   initialValues = EMPTY_FORM,
+  assignees = [],
   loading = false,
 }) {
   const [form, setForm] = useState(EMPTY_FORM);
@@ -25,6 +26,7 @@ export default function TaskEditorDialog({
       setForm({
         title: initialValues.title || "",
         description: initialValues.description || "",
+        assigneeId: initialValues.assigneeId || "",
       });
     }
   }, [open, initialValues]);
@@ -58,6 +60,24 @@ export default function TaskEditorDialog({
             placeholder="Décris ce qui a été fait pendant la journée."
           />
         </div>
+
+        {assignees.length > 0 && (
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-ink/70" htmlFor="task-assignee">
+              Employé destinataire
+            </label>
+            <select
+              id="task-assignee"
+              value={form.assigneeId}
+              onChange={(event) => setForm((current) => ({ ...current, assigneeId: event.target.value }))}
+              className="h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-ink outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+              required
+            >
+              <option value="">Choisir un employé</option>
+              {assignees.map((assignee) => <option key={assignee.uid} value={assignee.uid}>{assignee.name || assignee.email}</option>)}
+            </select>
+          </div>
+        )}
 
         <div className="flex justify-end gap-3 pt-2">
           <Button type="button" variant="ghost" onClick={onClose}>

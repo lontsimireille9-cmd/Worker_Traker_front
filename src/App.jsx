@@ -16,6 +16,7 @@ import Employees from "./pages/Employees";
 import Teams from "./pages/Teams";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import Reports from "./pages/Reports";
 
 export default function App() {
   return <BrowserRouter><AuthProvider><ThemeProvider><Routes>
@@ -33,8 +34,8 @@ export default function App() {
       <Route path="equipes" element={<Teams />} />
       <Route path="profil" element={<Profile />} />
       <Route path="parametres" element={<Settings />} />
+      <Route path="rapports" element={<RoleRoute roles={["SUPER_ADMIN"]}><Reports /></RoleRoute>} />
       <Route path="equipe" element={<RoleRoute roles={["MANAGER", "ADMIN", "SUPER_ADMIN"]}><Teams /></RoleRoute>} />
     </Route>
   </Routes></ThemeProvider></AuthProvider></BrowserRouter>;
 }
-

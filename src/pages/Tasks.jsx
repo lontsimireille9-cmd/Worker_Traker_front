@@ -38,6 +38,7 @@ export default function Tasks() {
   const [projects, setProjects] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [createOpen, setCreateOpen] = useState(false);
+  const [superCreateOpen, setSuperCreateOpen] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
   const [activeMenuTaskId, setActiveMenuTaskId] = useState(null);
@@ -121,6 +122,17 @@ export default function Tasks() {
         priority: "MEDIUM",
         projectId: "",
       });
+      await loadData();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleSuperAdminCreate(values) {
+    setLoading(true);
+    try {
+      await api.post("/tasks", { ...values, priority: "MEDIUM" });
+      setSuperCreateOpen(false);
       await loadData();
     } finally {
       setLoading(false);
@@ -226,6 +238,18 @@ export default function Tasks() {
           <p className="text-sm text-muted">Clique sur le profil d'un employé pour voir ses tâches et son historique.</p>
         </div>
 
+        <div className="mb-4 flex justify-end">
+          <Button onClick={() => setSuperCreateOpen(true)}>Créer une tâche</Button>
+        </div>
+        <TaskEditorDialog
+          open={superCreateOpen}
+          onClose={() => setSuperCreateOpen(false)}
+          onSubmit={handleSuperAdminCreate}
+          title="Créer une tâche pour un employé"
+          submitLabel="Attribuer la tâche"
+          assignees={employees}
+          loading={loading}
+        />
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           {employees.map((employee) => (
             <Link key={employee.uid} to={`/taches/employe/${employee.uid}`}>

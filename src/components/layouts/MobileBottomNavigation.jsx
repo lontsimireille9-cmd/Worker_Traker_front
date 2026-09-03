@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import {
-  FaClock,
   FaCog,
+  FaChartBar,
   FaEllipsisH,
   FaHistory,
   FaHome,
@@ -16,7 +16,6 @@ import { useAuth } from "../../context/AuthContext";
 
 const ESSENTIAL_TABS = [
   { path: "/", label: "Accueil", icon: <FaHome /> },
-  { path: "/presence", label: "Présence", icon: <FaClock /> },
   { path: "/taches", label: "Tâches", icon: <FaTasks /> },
   { path: "/profil", label: "Profil", icon: <FaUserCog /> },
 ];
@@ -32,6 +31,7 @@ export default function MobileBottomNavigation() {
     { path: "/equipes", label: "Équipes", icon: <FaLayerGroup /> },
     ...(isManager ? [{ path: "/employes", label: "Employés", icon: <FaUsers /> }] : []),
     { path: "/parametres", label: "Paramètres", icon: <FaCog /> },
+    ...(profile?.role === "SUPER_ADMIN" ? [{ path: "/rapports", label: "Rapports", icon: <FaChartBar /> }] : []),
   ];
 
   function isActive(path) {
