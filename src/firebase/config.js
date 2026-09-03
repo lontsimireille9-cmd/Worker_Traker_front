@@ -13,4 +13,6 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
+const companyApp = initializeApp(firebaseConfig, "company-auth");
+export const companyAuth = getAuth(companyApp);
 export default app;

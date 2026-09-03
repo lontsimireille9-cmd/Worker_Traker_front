@@ -44,7 +44,7 @@ async function request(path, options = {}) {
 
 export const api = {
   get: (path) => request(path),
-  post: (path, body = {}) => request(path, { method: "POST", body: JSON.stringify(body) }),
+  post: (path, body = {}, headers = {}) => request(path, { method: "POST", body: JSON.stringify(body), headers }),
   patch: (path, body = {}) => request(path, { method: "PATCH", body: JSON.stringify(body) }),
   setCompanySession(token) {
     if (token) localStorage.setItem(COMPANY_SESSION_KEY, token);

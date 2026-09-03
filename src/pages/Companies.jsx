@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaArrowRight, FaBuilding, FaLock, FaPlus } from "react-icons/fa";
+import { signInWithEmailAndPassword, signOut } from "firebase/auth";
 import { api } from "../services/api";
+import { companyAuth } from "../firebase/config";
 import { useAuth } from "../context/AuthContext";
 import Card from "../components/ui/card";
 import Input from "../components/ui/input";
@@ -26,7 +28,18 @@ export default function Companies() {
 
   async function unlock(event) {
     event.preventDefault(); setLoading(true); setError("");
-    try { const result = await api.post(`/companies/${selected.id}/unlock`, { password }); setActiveCompany(result.company, result.sessionToken, result.expiresAt); setSelected(null); setPassword(""); navigate("/"); }
+    try {
+      let result;
+      if (selected.authEmail) {
+        const credential = await signInWithEmailAndPassword(companyAuth, selected.authEmail, password);
+        const companyToken = await credential.user.getIdToken();
+        result = await api.post(`/companies/${selected.id}/unlock`, {}, { "X-Company-Auth": companyToken });
+        await signOut(companyAuth);
+      } else {
+        result = await api.post(`/companies/${selected.id}/unlock`, { password });
+      }
+      setActiveCompany(result.company, result.sessionToken, result.expiresAt); setSelected(null); setPassword(""); navigate("/");
+    }
     catch (err) { setError(err.message); } finally { setLoading(false); }
   }
 
