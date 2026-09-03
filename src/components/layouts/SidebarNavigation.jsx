@@ -14,24 +14,12 @@ import {
   FaSignOutAlt,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
-
-const PRIMARY_ITEMS = [
-  { path: "/", label: "Tableau de bord", icon: <FaHome /> },
-  { path: "/taches", label: "Tâches", icon: <FaTasks /> },
-];
-
-const TEAM_ITEM = { path: "/equipes", label: "Équipes", icon: <FaLayerGroup /> };
-const HISTORY_ITEM = { path: "/historique", label: "Historique", icon: <FaHistory /> };
-const EMPLOYEES_ITEM = { path: "/employes", label: "Employés", icon: <FaUsers /> };
-const ACCOUNT_ITEMS = [
-  { path: "/profil", label: "Mon profil", icon: <FaUserCog /> },
-  { path: "/parametres", label: "Paramètres", icon: <FaCog /> },
-];
-const REPORTS_ITEM = { path: "/rapports", label: "Rapports", icon: <FaChartBar /> };
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function SidebarNavigation({ onToggle }) {
   const location = useLocation();
   const { profile, logout } = useAuth();
+  const { t } = useLanguage();
   const isEmployee = profile?.role === "EMPLOYEE";
   const isManager = ["ADMIN", "MANAGER", "SUPER_ADMIN"].includes(profile?.role);
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -43,12 +31,14 @@ export default function SidebarNavigation({ onToggle }) {
   });
 
   const workItems = [
-    ...PRIMARY_ITEMS,
-    ...(isEmployee ? [HISTORY_ITEM] : []),
-    TEAM_ITEM,
-    ...(isManager ? [EMPLOYEES_ITEM] : []),
-    ...(profile?.role === "SUPER_ADMIN" ? [REPORTS_ITEM] : []),
+    { path: "/", label: t("dashboard"), icon: <FaHome /> },
+    { path: "/taches", label: t("tasks"), icon: <FaTasks /> },
+    ...(isEmployee ? [{ path: "/historique", label: t("history"), icon: <FaHistory /> }] : []),
+    { path: "/equipes", label: t("teams"), icon: <FaLayerGroup /> },
+    ...(isManager ? [{ path: "/employes", label: t("employees"), icon: <FaUsers /> }] : []),
+    ...(profile?.role === "SUPER_ADMIN" ? [{ path: "/rapports", label: t("reports"), icon: <FaChartBar /> }] : []),
   ];
+  const accountItems = [{ path: "/profil", label: t("profile"), icon: <FaUserCog /> }, { path: "/parametres", label: t("settings"), icon: <FaCog /> }];
 
   useEffect(() => {
     onToggle?.(isCollapsed);
@@ -115,12 +105,12 @@ export default function SidebarNavigation({ onToggle }) {
         </button>
       </div>
 
-      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-5" aria-label="Navigation principale">
-        {!isCollapsed && <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Espace de travail</p>}
+      <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-5" aria-label={t("mainNavigation")}>
+        {!isCollapsed && <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{t("workspace")}</p>}
         <ul className="space-y-1">{workItems.map(renderItem)}</ul>
         <div className="my-5 border-t border-line" />
-        {!isCollapsed && <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Compte</p>}
-        <ul className="space-y-1">{ACCOUNT_ITEMS.map(renderItem)}</ul>
+        {!isCollapsed && <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{t("account")}</p>}
+        <ul className="space-y-1">{accountItems.map(renderItem)}</ul>
       </nav>
 
       <div className="flex-shrink-0 border-t border-line p-3">

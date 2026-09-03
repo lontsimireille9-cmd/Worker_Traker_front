@@ -3,12 +3,14 @@ import { useNavigate, Link } from "react-router-dom";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase/config";
 import { api } from "../services/api";
+import { useLanguage } from "../context/LanguageContext";
 import Button from "../components/ui/button";
 import Input from "../components/ui/input";
 import Alert from "../components/ui/alert";
 import Card from "../components/ui/card";
 
 export default function Register() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -64,13 +66,13 @@ export default function Register() {
     <div className="min-h-screen flex items-center justify-center px-4 bg-canvas">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <h1 className="font-display text-2xl text-ink">Créer mon entreprise</h1>
-          <p className="text-sm text-muted mt-1">Ce compte administrateur pourra ensuite ajouter vos employés.</p>
+          <h1 className="font-display text-2xl text-ink">{t("createCompany")}</h1>
+          <p className="text-sm text-muted mt-1">{t("registerDescription")}</p>
         </div>
 
         <Card>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <Input id="name" label="Votre nom" required value={name} onChange={(e) => setName(e.target.value)} />
+            <Input id="name" label={t("yourName")} required value={name} onChange={(e) => setName(e.target.value)} />
             <Input
               id="email"
               type="email"
@@ -83,7 +85,7 @@ export default function Register() {
             <Input
               id="password"
               type="password"
-              label="Mot de passe"
+              label={t("password")}
               required
               minLength={6}
               value={password}
@@ -94,13 +96,13 @@ export default function Register() {
             {error && <Alert type="danger">{error}</Alert>}
 
             <Button type="submit" loading={loading} className="w-full" size="md">
-              Créer mon compte
+              {t("createCompany")}
             </Button>
 
             <p className="text-center text-xs text-muted">
-              Déjà un compte ?{" "}
+              {t("alreadyAccount")} {" "}
               <Link to="/login" className="text-primary hover:underline">
-                Se connecter
+                {t("login")}
               </Link>
             </p>
           </form>

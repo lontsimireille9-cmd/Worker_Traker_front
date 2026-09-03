@@ -13,25 +13,22 @@ import {
   FaUsers,
 } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
-
-const ESSENTIAL_TABS = [
-  { path: "/", label: "Accueil", icon: <FaHome /> },
-  { path: "/taches", label: "Tâches", icon: <FaTasks /> },
-  { path: "/profil", label: "Profil", icon: <FaUserCog /> },
-];
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function MobileBottomNavigation() {
   const location = useLocation();
   const { profile } = useAuth();
+  const { t } = useLanguage();
   const [moreOpen, setMoreOpen] = useState(false);
   const isEmployee = profile?.role === "EMPLOYEE";
   const isManager = ["ADMIN", "MANAGER", "SUPER_ADMIN"].includes(profile?.role);
+  const essentialTabs = [{ path: "/", label: t("home"), icon: <FaHome /> }, { path: "/taches", label: t("tasks"), icon: <FaTasks /> }, { path: "/profil", label: t("profile"), icon: <FaUserCog /> }];
   const secondaryTabs = [
-    ...(isEmployee ? [{ path: "/historique", label: "Historique", icon: <FaHistory /> }] : []),
-    { path: "/equipes", label: "Équipes", icon: <FaLayerGroup /> },
-    ...(isManager ? [{ path: "/employes", label: "Employés", icon: <FaUsers /> }] : []),
-    { path: "/parametres", label: "Paramètres", icon: <FaCog /> },
-    ...(profile?.role === "SUPER_ADMIN" ? [{ path: "/rapports", label: "Rapports", icon: <FaChartBar /> }] : []),
+    ...(isEmployee ? [{ path: "/historique", label: t("history"), icon: <FaHistory /> }] : []),
+    { path: "/equipes", label: t("teams"), icon: <FaLayerGroup /> },
+    ...(isManager ? [{ path: "/employes", label: t("employees"), icon: <FaUsers /> }] : []),
+    { path: "/parametres", label: t("settings"), icon: <FaCog /> },
+    ...(profile?.role === "SUPER_ADMIN" ? [{ path: "/rapports", label: t("reports"), icon: <FaChartBar /> }] : []),
   ];
 
   function isActive(path) {
@@ -58,7 +55,7 @@ export default function MobileBottomNavigation() {
           moreOpen ? "translate-y-0 opacity-100" : "pointer-events-none translate-y-3 opacity-0",
         ].join(" ")}
       >
-        <p className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Accès rapides</p>
+        <p className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">{t("quickAccess")}</p>
         <div className="grid grid-cols-2 gap-1">
           {secondaryTabs.map((tab) => (
             <Link
@@ -79,7 +76,7 @@ export default function MobileBottomNavigation() {
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-line bg-surface/95 px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_30px_rgba(18,24,27,0.08)] backdrop-blur lg:hidden" aria-label="Navigation mobile">
         <div className="mx-auto flex h-[68px] max-w-xl items-center justify-around gap-1">
-          {ESSENTIAL_TABS.map((tab) => (
+          {essentialTabs.map((tab) => (
             <Link
               key={tab.path}
               to={tab.path}
@@ -103,7 +100,7 @@ export default function MobileBottomNavigation() {
             ].join(" ")}
           >
             <span className="text-base leading-none">{moreOpen ? <FaTimes /> : <FaEllipsisH />}</span>
-            <span>{moreOpen ? "Fermer" : "Plus"}</span>
+            <span>{moreOpen ? t("close") : t("more")}</span>
           </button>
         </div>
       </nav>

@@ -3,29 +3,19 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import MobileHeader from "./MobileHeader";
 import MobileBottomNavigation from "./MobileBottomNavigation";
 import SidebarNavigation from "./SidebarNavigation";
+import { useLanguage } from "../../context/LanguageContext";
 
-const MAIN_PATHS = {
-  "/": "Tableau de bord",
-  "/presence": "Présence",
-  "/taches": "Tâches",
-  "/historique": "Historique",
-  "/employes": "Employés",
-  "/equipes": "Équipes",
-  "/profil": "Profil",
-  "/parametres": "Parametres",
-  "/rapports": "Rapports",
-};
-
-function getPageTitle(pathname) {
+function getPageTitle(pathname, t) {
   if (pathname.startsWith("/historique")) {
-    return "Historique";
+    return t("history");
   }
 
   if (pathname.startsWith("/taches/employe")) {
-    return "Tâches";
+    return t("tasks");
   }
 
-  return MAIN_PATHS[pathname] || "Suivi Employés";
+  const titles = { "/": "dashboard", "/presence": "attendance", "/taches": "tasks", "/employes": "employees", "/equipes": "teams", "/profil": "profile", "/parametres": "settings", "/rapports": "reports" };
+  return t(titles[pathname] || "appName");
 }
 
 function isMainRoute(pathname) {
@@ -37,15 +27,16 @@ function isMainRoute(pathname) {
     return false;
   }
 
-  return Object.prototype.hasOwnProperty.call(MAIN_PATHS, pathname);
+  return ["/", "/presence", "/taches", "/employes", "/equipes", "/profil", "/parametres", "/rapports"].includes(pathname);
 }
 
 export default function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
-  const title = getPageTitle(location.pathname);
+  const title = getPageTitle(location.pathname, t);
   const showBackButton = !isMainRoute(location.pathname);
 
   return (

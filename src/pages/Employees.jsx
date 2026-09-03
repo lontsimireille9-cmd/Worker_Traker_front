@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
+import { useLanguage } from "../context/LanguageContext";
 import Button from "../components/ui/button";
 import Card from "../components/ui/card";
 import Input from "../components/ui/input";
@@ -9,6 +10,7 @@ import Alert from "../components/ui/alert";
 import Badge from "../components/ui/badge";
 
 export default function Employees() {
+  const { t } = useLanguage();
   const [employees, setEmployees] = useState([]);
   const [teams, setTeams] = useState([]);
   const [form, setForm] = useState({ matricule: "", name: "", code: "", role: "EMPLOYEE", department: "", position: "", teamId: "" });
@@ -44,10 +46,10 @@ export default function Employees() {
   return (
     <div>
       <Title as="h1" variant="page" className="mb-1">
-        Employés
+        {t("employees")}
       </Title>
       <p className="text-sm text-muted mb-8">
-        Créez un accès pour chaque employé : il se connectera avec son matricule et le code que vous lui remettez.
+        {t("employeesDescription")}
       </p>
 
       <Card className="mb-8">
@@ -55,7 +57,7 @@ export default function Employees() {
           <div className="w-40">
             <Input
               id="matricule"
-              label="Matricule"
+              label={t("employeeId")}
               value={form.matricule}
               onChange={(e) => setForm({ ...form, matricule: e.target.value })}
               placeholder="EMP-0234"
@@ -64,7 +66,7 @@ export default function Employees() {
           <div className="w-56">
             <Input
               id="name"
-              label="Nom complet"
+              label={t("fullName")}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
@@ -72,39 +74,39 @@ export default function Employees() {
           <div className="w-40">
             <Input
               id="code"
-              label="Code (mot de passe)"
+              label={t("passwordCode")}
               value={form.code}
               onChange={(e) => setForm({ ...form, code: e.target.value })}
               placeholder="Min. 6 caractères"
             />
           </div>
           <div className="w-36">
-            <label className="block text-sm font-medium mb-1.5 text-ink/70">Rôle</label>
+            <label className="block text-sm font-medium mb-1.5 text-ink/70">{t("role")}</label>
             <Select
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
               options={[
-                { value: "EMPLOYEE", label: "Employé" },
-                { value: "MANAGER", label: "Manager" },
+                { value: "EMPLOYEE", label: t("employee") },
+                { value: "MANAGER", label: t("manager") },
               ]}
             />
           </div>
           <div className="w-40">
-            <Input id="department" label="Département" value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+            <Input id="department" label={t("department")} value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
           </div>
           <div className="w-40">
-            <Input id="position" label="Poste" value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} />
+            <Input id="position" label={t("position")} value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} />
           </div>
           <div className="w-40">
-            <label className="block text-sm font-medium mb-1.5 text-ink/70">Équipe</label>
+            <label className="block text-sm font-medium mb-1.5 text-ink/70">{t("teams")}</label>
             <Select
               value={form.teamId}
               onChange={(e) => setForm({ ...form, teamId: e.target.value })}
-              options={[{ value: "", label: "Aucune" }, ...teams.map((team) => ({ value: team.id, label: team.name }))]}
+              options={[{ value: "", label: t("none") }, ...teams.map((team) => ({ value: team.id, label: team.name }))]}
             />
           </div>
           <Button type="submit" loading={loading}>
-            Créer l'accès
+            {t("createAccess")}
           </Button>
         </form>
 
@@ -131,7 +133,7 @@ export default function Employees() {
             <Badge tone={emp.role === "MANAGER" ? "info" : "neutral"}>{emp.role}</Badge>
           </Card>
         ))}
-        {employees.length === 0 && <p className="text-sm text-muted">Aucun employé pour le moment.</p>}
+        {employees.length === 0 && <p className="text-sm text-muted">{t("noEmployees")}</p>}
       </div>
     </div>
   );

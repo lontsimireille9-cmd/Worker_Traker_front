@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { LanguageProvider } from "./context/LanguageContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleRoute from "./components/RoleRoute";
 import Layout from "./components/layouts/Layout";
@@ -19,7 +20,7 @@ import Settings from "./pages/Settings";
 import Reports from "./pages/Reports";
 
 export default function App() {
-  return <BrowserRouter><AuthProvider><ThemeProvider><Routes>
+  return <BrowserRouter><AuthProvider><LanguageProvider><ThemeProvider><Routes>
     <Route path="/login" element={<Login />} />
     <Route path="/register" element={<Register />} />
     <Route path="/setup-company" element={<ProtectedRoute><CreateCompany /></ProtectedRoute>} />
@@ -37,5 +38,5 @@ export default function App() {
       <Route path="rapports" element={<RoleRoute roles={["SUPER_ADMIN"]}><Reports /></RoleRoute>} />
       <Route path="equipe" element={<RoleRoute roles={["MANAGER", "ADMIN", "SUPER_ADMIN"]}><Teams /></RoleRoute>} />
     </Route>
-  </Routes></ThemeProvider></AuthProvider></BrowserRouter>;
+  </Routes></ThemeProvider></LanguageProvider></AuthProvider></BrowserRouter>;
 }

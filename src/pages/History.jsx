@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import Card from "../components/ui/card";
 import Title from "../components/ui/title";
 import Badge from "../components/ui/badge";
@@ -31,6 +32,7 @@ const STATUS_FILTERS = [
 
 export default function History() {
   const { profile } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const { date } = useParams();
   const [tasks, setTasks] = useState([]);
@@ -60,7 +62,7 @@ export default function History() {
   if (!isEmployee) {
     return (
       <Card>
-        <p className="text-sm text-muted">Cette page est réservée aux employés.</p>
+        <p className="text-sm text-muted">{t("historyReserved")}</p>
       </Card>
     );
   }
@@ -73,9 +75,9 @@ export default function History() {
             <Title as="h1" variant="page" className="mb-1">
               Historique du {formatTaskDate(`${date}T12:00:00`)}
             </Title>
-            <p className="text-sm text-muted">Toutes les tâches créées à cette date, triées par statut.</p>
+            <p className="text-sm text-muted">{t("historyDateDescription")}</p>
           </div>
-          <Button variant="outline" onClick={() => navigate("/historique")}>Retour à l'historique</Button>
+          <Button variant="outline" onClick={() => navigate("/historique")}>{t("backToHistory")}</Button>
         </div>
 
         <div className="mb-6 max-w-sm">
@@ -113,7 +115,7 @@ export default function History() {
           open={!!selectedTask}
           onClose={() => setSelectedTask(null)}
           task={selectedTask}
-          title="Détails de la tâche"
+          title={t("taskDetails")}
         />
       </div>
     );
@@ -126,9 +128,9 @@ export default function History() {
     <div>
       <div className="mb-6">
         <Title as="h1" variant="page" className="mb-1">
-          Historique
+          {t("history")}
         </Title>
-        <p className="text-sm text-muted">Clique sur une date pour voir toutes les tâches créées ce jour-là.</p>
+        <p className="text-sm text-muted">{t("historyDescription")}</p>
       </div>
 
       <div className="mb-6 max-w-sm">
@@ -147,7 +149,7 @@ export default function History() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className="font-medium text-ink">{formatTaskDate(`${dateKey}T12:00:00`)}</p>
-                  <p className="text-xs text-muted mt-1">{dayTasks.length} tâche(s) enregistrée(s)</p>
+                  <p className="text-xs text-muted mt-1">{dayTasks.length} {t("tasksRecorded")}</p>
                 </div>
                 <Badge tone={completed === dayTasks.length ? "success" : "warning"}>
                   {completed}/{dayTasks.length}
@@ -157,7 +159,7 @@ export default function History() {
           );
         })}
 
-        {sortedDateEntries.length === 0 && <p className="text-sm text-muted">Aucun historique pour le moment.</p>}
+        {sortedDateEntries.length === 0 && <p className="text-sm text-muted">{t("noHistory")}</p>}
       </div>
     </div>
   );

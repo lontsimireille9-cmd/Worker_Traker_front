@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import Button from "../components/ui/button";
 import Card from "../components/ui/card";
 import Input from "../components/ui/input";
@@ -11,6 +12,7 @@ import Dialog from "../components/ui/dialog";
 
 export default function Teams() {
   const { profile } = useAuth();
+  const { t } = useLanguage();
   const [teams, setTeams] = useState([]);
   const [users, setUsers] = useState([]);
   const [selectedTeam, setSelectedTeam] = useState(null);
@@ -70,10 +72,10 @@ export default function Teams() {
   return (
     <div>
       <Title as="h1" variant="page" className="mb-1">
-        Équipes & départements
+        {t("teamsAndDepartments")}
       </Title>
       <p className="text-sm text-muted mb-8">
-        Gérez les équipes, les départements et les retards éventuels sur les livrables.
+        {t("teamsDescription")}
       </p>
 
       {profile?.role !== "EMPLOYEE" && (
@@ -82,13 +84,13 @@ export default function Teams() {
             <div className="w-52">
               <Input
                 id="team-name"
-                label="Nom de l’équipe"
+                label={t("teamName")}
                 value={form.name}
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
             </div>
             <div className="min-w-[260px] flex-1">
-              <p className="mb-1.5 text-sm font-medium text-ink/70">Membres de l’équipe</p>
+              <p className="mb-1.5 text-sm font-medium text-ink/70">{t("teamMembers")}</p>
               <div className="max-h-28 overflow-y-auto rounded-xl border border-line bg-surface-2 p-2">
                 {users.length > 0 ? users.map((user) => (
                   <label key={user.uid} className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-surface">
@@ -101,19 +103,19 @@ export default function Teams() {
             <div className="w-52">
               <Input
                 id="team-dept"
-                label="Département"
+                label={t("department")}
                 value={form.department}
                 onChange={(e) => setForm({ ...form, department: e.target.value })}
               />
             </div>
             <div className="w-52">
-              <label className="block text-sm font-medium mb-1.5 text-ink/70">Responsable</label>
+              <label className="block text-sm font-medium mb-1.5 text-ink/70">{t("leader")}</label>
               <Button type="button" variant="outline" onClick={() => openLeaderModal(null)}>
-                {form.leaderId ? "Changer le responsable" : "Choisir un responsable"}
+                {form.leaderId ? t("changeLeader") : t("chooseLeader")}
               </Button>
             </div>
             <Button type="submit" loading={loading}>
-              Créer l’équipe
+              {t("createTeam")}
             </Button>
           </form>
           {success && <Alert type="success" className="mt-4">{success}</Alert>}
@@ -122,11 +124,11 @@ export default function Teams() {
       )}
 
       <Card className="mb-6">
-        <p className="text-sm font-medium text-ink">Alerte d’échéance</p>
+        <p className="text-sm font-medium text-ink">{t("deadlineAlert")}</p>
         <p className="text-sm text-muted mt-1">
           {overdueTeams.length > 0
             ? `${overdueTeams.length} équipe(s) présente(nt) un retard ou un livrable non respecté.`
-            : "Aucune équipe en retard pour le moment."}
+            : t("noOverdueTeams")}
         </p>
       </Card>
 
@@ -149,14 +151,14 @@ export default function Teams() {
             </div>
             <div className="mt-4 flex items-center justify-between text-xs text-muted">
               <span>{team.memberIds?.length || 0} membre(s)</span>
-              <span className="text-primary">Voir les membres</span>
+              <span className="text-primary">{t("viewMembers")}</span>
             </div>
           </button>
         ))}
-        {teams.length === 0 && <p className="text-sm text-muted">Aucune équipe pour le moment.</p>}
+        {teams.length === 0 && <p className="text-sm text-muted">{t("noTeams")}</p>}
       </div>
 
-      <Dialog open={leaderModalOpen} onClose={() => setLeaderModalOpen(false)} title="Choisir un responsable">
+      <Dialog open={leaderModalOpen} onClose={() => setLeaderModalOpen(false)} title={t("chooseLeader")}>
         <div className="space-y-3">
           {users.map((user) => (
             <button

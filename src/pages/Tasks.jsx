@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import Button from "../components/ui/button";
 import Card from "../components/ui/card";
 import Input from "../components/ui/input";
@@ -30,6 +31,7 @@ const PRIORITY_OPTIONS = [
 
 export default function Tasks() {
   const { profile } = useAuth();
+  const { t } = useLanguage();
   const role = profile?.role;
   const isEmployee = role === "EMPLOYEE";
   const isSuperAdmin = role === "SUPER_ADMIN";
@@ -145,12 +147,12 @@ export default function Tasks() {
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <Title as="h1" variant="page" className="mb-1">
-              Tâches
+              {t("tasks")}
             </Title>
-            <p className="text-sm text-muted">Ajoute les tâches que tu as réalisées pendant la journée.</p>
+            <p className="text-sm text-muted">{t("taskDescription")}</p>
           </div>
 
-          <Button onClick={() => setCreateOpen(true)}>Ajouter</Button>
+          <Button onClick={() => setCreateOpen(true)}>{t("add")}</Button>
         </div>
 
         <div className="space-y-3">
@@ -163,7 +165,7 @@ export default function Tasks() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-medium text-ink">{task.title}</p>
-                  <p className="mt-1 text-sm text-muted">{task.description || "Aucune description."}</p>
+                  <p className="mt-1 text-sm text-muted">{task.description || t("noDescription")}</p>
                   <p className="mt-2 text-xs text-muted">{formatTaskDate(task.createdAt)}</p>
                 </div>
 
@@ -186,7 +188,7 @@ export default function Tasks() {
                       setActiveMenuTaskId(null);
                     }}
                   >
-                    Modifier
+                    {t("edit")}
                   </button>
                   <button
                     className="block w-full rounded-lg px-3 py-2 text-left text-sm text-ink hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -196,22 +198,22 @@ export default function Tasks() {
                     }}
                     disabled={task.status === "COMPLETED"}
                   >
-                    Valider
+                    {t("validate")}
                   </button>
                 </div>
               )}
             </Card>
           ))}
 
-          {employeeTasks.length === 0 && <p className="text-sm text-muted">Aucune tâche pour le moment.</p>}
+          {employeeTasks.length === 0 && <p className="text-sm text-muted">{t("noTasks")}</p>}
         </div>
 
         <TaskEditorDialog
           open={createOpen}
           onClose={() => setCreateOpen(false)}
           onSubmit={handleCreateEmployeeTask}
-          title="Ajouter une tâche"
-          submitLabel="Créer"
+          title={t("addTask")}
+          submitLabel={t("create")}
           loading={loading}
         />
 
@@ -219,8 +221,8 @@ export default function Tasks() {
           open={!!editTask}
           onClose={() => setEditTask(null)}
           onSubmit={handleEditEmployeeTask}
-          title="Modifier la tâche"
-          submitLabel="Enregistrer"
+          title={t("editTask")}
+          submitLabel={t("save")}
           initialValues={editTask || undefined}
           loading={loading}
         />
@@ -233,20 +235,20 @@ export default function Tasks() {
       <div>
         <div className="mb-6">
           <Title as="h1" variant="page" className="mb-1">
-            Tâches
+            {t("tasks")}
           </Title>
-          <p className="text-sm text-muted">Clique sur le profil d'un employé pour voir ses tâches et son historique.</p>
+          <p className="text-sm text-muted">{t("selectEmployeeTasks")}</p>
         </div>
 
         <div className="mb-4 flex justify-end">
-          <Button onClick={() => setSuperCreateOpen(true)}>Créer une tâche</Button>
+          <Button onClick={() => setSuperCreateOpen(true)}>{t("createTask")}</Button>
         </div>
         <TaskEditorDialog
           open={superCreateOpen}
           onClose={() => setSuperCreateOpen(false)}
           onSubmit={handleSuperAdminCreate}
-          title="Créer une tâche pour un employé"
-          submitLabel="Attribuer la tâche"
+          title={t("createTaskForEmployee")}
+          submitLabel={t("assignTask")}
           assignees={employees}
           loading={loading}
         />
@@ -266,7 +268,7 @@ export default function Tasks() {
             </Link>
           ))}
 
-          {employees.length === 0 && <p className="text-sm text-muted">Aucun employé trouvé.</p>}
+          {employees.length === 0 && <p className="text-sm text-muted">{t("noEmployeesFound")}</p>}
         </div>
       </div>
     );
@@ -276,16 +278,16 @@ export default function Tasks() {
     <div>
       <div className="mb-6">
         <Title as="h1" variant="page" className="mb-1">
-          Tâches
+          {t("tasks")}
         </Title>
-        <p className="text-sm text-muted">Gère les tâches, l'ordre et les statuts de ton équipe.</p>
+        <p className="text-sm text-muted">{t("manageTasks")}</p>
       </div>
 
       <Card className="mb-8">
         <form onSubmit={handleManagerCreate} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <Input
             id="title"
-            label="Titre"
+            label={t("title")}
             value={managerForm.title}
             onChange={(event) => setManagerForm({ ...managerForm, title: event.target.value })}
             placeholder="Nouvelle tâche"
@@ -294,7 +296,7 @@ export default function Tasks() {
 
           <div className="md:col-span-2">
             <label className="mb-1.5 block text-sm font-medium text-ink/70" htmlFor="description">
-              Description
+              {t("description")}
             </label>
             <Textarea
               id="description"
@@ -306,19 +308,19 @@ export default function Tasks() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-ink/70">Employé</label>
+            <label className="mb-1.5 block text-sm font-medium text-ink/70">{t("employee")}</label>
             <Select
               value={managerForm.assigneeId}
               onChange={(event) => setManagerForm({ ...managerForm, assigneeId: event.target.value })}
               options={[
-                { value: "", label: "Choisir un employé" },
+                { value: "", label: t("employeeChoice") },
                 ...employees.map((employee) => ({ value: employee.uid, label: employee.name })),
               ]}
             />
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-ink/70">Priorité</label>
+            <label className="mb-1.5 block text-sm font-medium text-ink/70">{t("priority")}</label>
             <Select
               value={managerForm.priority}
               onChange={(event) => setManagerForm({ ...managerForm, priority: event.target.value })}
@@ -327,12 +329,12 @@ export default function Tasks() {
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-ink/70">Projet</label>
+            <label className="mb-1.5 block text-sm font-medium text-ink/70">{t("project")}</label>
             <Select
               value={managerForm.projectId}
               onChange={(event) => setManagerForm({ ...managerForm, projectId: event.target.value })}
               options={[
-                { value: "", label: "Sans projet" },
+                { value: "", label: t("withoutProject") },
                 ...projects.map((project) => ({ value: project.id, label: project.name })),
               ]}
             />
@@ -340,7 +342,7 @@ export default function Tasks() {
 
           <div className="xl:col-span-3">
             <Button type="submit" loading={loading}>
-              Créer
+              {t("create")}
             </Button>
           </div>
         </form>
@@ -352,8 +354,8 @@ export default function Tasks() {
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="font-medium text-ink">{task.title}</p>
-                <p className="mt-1 text-sm text-muted">Assigné à {task.assigneeName || task.assigneeId}</p>
-                {task.projectName && <p className="text-xs text-muted">Projet : {task.projectName}</p>}
+                <p className="mt-1 text-sm text-muted">{t("assignedTo")} {task.assigneeName || task.assigneeId}</p>
+                {task.projectName && <p className="text-xs text-muted">{t("project")} : {task.projectName}</p>}
                 <p className="mt-2 text-xs text-muted">{formatTaskDate(task.createdAt)}</p>
               </div>
 
@@ -377,14 +379,14 @@ export default function Tasks() {
           </Card>
         ))}
 
-        {orderedTasks.length === 0 && <p className="text-sm text-muted">Aucune tâche pour le moment.</p>}
+        {orderedTasks.length === 0 && <p className="text-sm text-muted">{t("noTasks")}</p>}
       </div>
 
       <TaskDetailsDialog
         open={!!selectedTask}
         onClose={() => setSelectedTask(null)}
         task={selectedTask}
-        title="Détails de la tâche"
+        title={t("taskDetails")}
       />
     </div>
   );
