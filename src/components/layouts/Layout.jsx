@@ -12,6 +12,8 @@ const MAIN_PATHS = {
   "/employes": "Employés",
   "/equipes": "Équipes",
   "/profil": "Profil",
+  "/parametres": "Parametres",
+  "/entreprises": "Entreprises",
 };
 
 function getPageTitle(pathname) {

@@ -12,6 +12,7 @@ const BASE_TABS = [
 ];
 
 const EMPLOYEE_HISTORY_TAB = { path: "/historique", label: "Historique", icon: <FaHistory /> };
+const SETTINGS_TAB = { path: "/parametres", label: "Reglages", icon: <FaUserCog /> };
 const MANAGER_TAB = { path: "/employes", label: "Employés", icon: <FaUsers /> };
 
 export default function MobileBottomNavigation() {
@@ -20,7 +21,7 @@ export default function MobileBottomNavigation() {
   const isEmployee = profile?.role === "EMPLOYEE";
   const isManager = ["ADMIN", "MANAGER", "SUPER_ADMIN"].includes(profile?.role);
   const baseTabs = isEmployee ? [BASE_TABS[0], BASE_TABS[1], BASE_TABS[2], EMPLOYEE_HISTORY_TAB, BASE_TABS[3], BASE_TABS[4]] : BASE_TABS;
-  const TABS = isManager ? [...baseTabs, MANAGER_TAB] : baseTabs;
+  const TABS = isManager ? [...baseTabs, MANAGER_TAB, SETTINGS_TAB] : [...baseTabs, SETTINGS_TAB];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-line bg-surface shadow-lg md:hidden">

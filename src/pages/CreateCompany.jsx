@@ -14,6 +14,8 @@ export default function CreateCompany() {
   const [address, setAddress] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -22,9 +24,13 @@ export default function CreateCompany() {
     setError("");
     setLoading(true);
     try {
-      await api.post("/companies", { name, address, phone, email });
+      if (password.length < 8 || password !== confirmPassword) {
+        setError(password.length < 8 ? "Le mot de passe doit contenir au moins 8 caractères." : "Les mots de passe ne correspondent pas.");
+        return;
+      }
+      await api.post("/companies", { name, address, phone, email, password });
       await refreshProfile();
-      navigate("/");
+      navigate("/entreprises");
     } catch (err) {
       setError(err.message || "Impossible de créer l'entreprise.");
     } finally {
@@ -50,6 +56,8 @@ export default function CreateCompany() {
               onChange={(e) => setName(e.target.value)}
               placeholder="Ex: Atelier Dubois"
             />
+            <Input id="password" label="Mot de passe de l'entreprise" type="password" minLength={8} required value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input id="confirm-password" label="Confirmer le mot de passe" type="password" minLength={8} required value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
             <Input
               id="address"
               label="Adresse"

@@ -12,6 +12,8 @@ const BASE_NAV_ITEMS = [
 ];
 
 const EMPLOYEE_HISTORY_ITEM = { path: "/historique", label: "Historique", icon: <FaHistory /> };
+const COMPANY_NAV_ITEM = { path: "/entreprises", label: "Entreprises", icon: <FaLayerGroup /> };
+const SETTINGS_NAV_ITEM = { path: "/parametres", label: "Parametres", icon: <FaUserCog /> };
 const MANAGER_NAV_ITEM = { path: "/employes", label: "Employés", icon: <FaUsers /> };
 
 export default function SidebarNavigation({ onToggle }) {
@@ -20,7 +22,7 @@ export default function SidebarNavigation({ onToggle }) {
   const isEmployee = profile?.role === "EMPLOYEE";
   const isManager = ["ADMIN", "MANAGER", "SUPER_ADMIN"].includes(profile?.role);
   const baseItems = isEmployee ? [BASE_NAV_ITEMS[0], BASE_NAV_ITEMS[1], BASE_NAV_ITEMS[2], EMPLOYEE_HISTORY_ITEM, BASE_NAV_ITEMS[3], BASE_NAV_ITEMS[4]] : BASE_NAV_ITEMS;
-  const NAV_ITEMS = isManager ? [...baseItems, MANAGER_NAV_ITEM] : baseItems;
+  const NAV_ITEMS = [...baseItems, ...(isManager ? [MANAGER_NAV_ITEM, COMPANY_NAV_ITEM] : []), SETTINGS_NAV_ITEM];
   const [isCollapsed, setIsCollapsed] = useState(() => {
     const saved = localStorage.getItem("sidebarCollapsed");
     return saved ? JSON.parse(saved) : false;
