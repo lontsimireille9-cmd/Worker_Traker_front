@@ -1,96 +1,45 @@
 import { useEffect, useMemo, useState } from "react";
-import { FaArrowUp, FaCheckCircle, FaClock, FaClipboardList, FaExclamationTriangle, FaUsers } from "react-icons/fa";
+import { FaChartLine, FaCheckCircle, FaClock, FaTasks, FaUsers } from "react-icons/fa";
 import { api } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import Card from "../components/ui/card";
+import Select from "../components/ui/select";
 import Title from "../components/ui/title";
 import Badge from "../components/ui/badge";
-import Select from "../components/ui/select";
-import {
-  formatTaskDate,
-  getTaskStatusLabel,
-  getTaskTimelineLabel,
-  getTaskTimelineTone,
-  isTaskCompleted,
-  sortTasksByDisplayOrder,
-} from "../utils/getTaskDisplayStatus";
+import { formatTaskDate, isTaskCompleted } from "../utils/getTaskDisplayStatus";
 
-const PERIODS = [
-  { value: "30", label: "30 derniers jours" },
-  { value: "90", label: "3 derniers mois" },
-  { value: "180", label: "6 derniers mois" },
-  { value: "365", label: "12 derniers mois" },
-];
-
-function getDateValue(value) {
-  const date = new Date(value || 0);
-  return Number.isNaN(date.getTime()) ? 0 : date.getTime();
-}
-
-function inPeriod(task, days) {
-  return getDateValue(task.createdAt) >= Date.now() - Number(days) * 24 * 60 * 60 * 1000;
-}
+const PERIODS = [{ value: "30", label: "30 derniers jours" }, { value: "90", label: "3 derniers mois" }, { value: "180", label: "6 derniers mois" }, { value: "365", label: "12 derniers mois" }];
+const COLORS = { primary: "#2f5d50", success: "#159570", warning: "#d58b28", grid: "#dce6e1" };
+function timestamp(value) { const date = new Date(value || 0); return Number.isNaN(date.getTime()) ? 0 : date.getTime(); }
+function shortDate(value) { return new Date(value).toLocaleDateString("fr-FR", { day: "2-digit", month: "short" }); }
+function inPeriod(task, days) { return timestamp(task.createdAt) >= Date.now() - Number(days) * 86400000; }
+function makeBuckets(tasks, days) { const count = days <= 30 ? 7 : days <= 90 ? 9 : 12; const span = Number(days) * 86400000 / count; return Array.from({ length: count }, (_, index) => { const start = Date.now() - Number(days) * 86400000 + index * span; const bucketTasks = tasks.filter((task) => timestamp(task.createdAt) >= start && timestamp(task.createdAt) < start + span); const completed = bucketTasks.filter(isTaskCompleted).length; return { label: shortDate(start), total: bucketTasks.length, completed, rate: bucketTasks.length ? Math.round(completed / bucketTasks.length * 100) : 0 }; }); }
 
 export default function Dashboard() {
   const { profile } = useAuth();
-  const [tasks, setTasks] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [period, setPeriod] = useState("30");
+  const [tasks, setTasks] = useState([]); const [employees, setEmployees] = useState([]); const [period, setPeriod] = useState("30");
   const isEmployee = profile?.role === "EMPLOYEE";
+  useEffect(() => { api.get("/tasks").then(setTasks).catch(() => setTasks([])); if (!isEmployee) api.get("/employees").then(setEmployees).catch(() => setEmployees([])); }, [isEmployee]);
+  const periodTasks = useMemo(() => tasks.filter((task) => inPeriod(task, period)), [tasks, period]);
+  const buckets = useMemo(() => makeBuckets(periodTasks, period), [periodTasks, period]);
+  const completed = periodTasks.filter(isTaskCompleted).length; const pending = periodTasks.length - completed; const completionRate = periodTasks.length ? Math.round(completed / periodTasks.length * 100) : 0;
+  const overdue = periodTasks.filter((task) => !isTaskCompleted(task) && timestamp(task.createdAt) < Date.now() - 86400000).length;
+  const employeePerformance = useMemo(() => employees.map((employee) => { const own = periodTasks.filter((task) => task.assigneeId === employee.uid); const done = own.filter(isTaskCompleted).length; return { ...employee, total: own.length, done, rate: own.length ? Math.round(done / own.length * 100) : 0 }; }).filter((employee) => employee.total > 0).sort((a, b) => b.rate - a.rate || b.done - a.done), [employees, periodTasks]);
 
-  useEffect(() => {
-    api.get("/tasks").then(setTasks).catch(() => setTasks([]));
-    if (!isEmployee) api.get("/employees").then(setEmployees).catch(() => setEmployees([]));
-  }, [isEmployee]);
-
-  const periodTasks = useMemo(() => sortTasksByDisplayOrder(tasks.filter((task) => inPeriod(task, period))), [tasks, period]);
-  const completed = periodTasks.filter(isTaskCompleted).length;
-  const pending = periodTasks.filter((task) => !isTaskCompleted(task)).length;
-  const completionRate = periodTasks.length ? Math.round((completed / periodTasks.length) * 100) : 0;
-  const late = periodTasks.filter((task) => !isTaskCompleted(task) && getDateValue(task.createdAt) < Date.now() - 24 * 60 * 60 * 1000).length;
-
-  const employeePerformance = useMemo(() => employees.map((employee) => {
-    const employeeTasks = periodTasks.filter((task) => task.assigneeId === employee.uid);
-    const done = employeeTasks.filter(isTaskCompleted).length;
-    return { ...employee, total: employeeTasks.length, done, rate: employeeTasks.length ? Math.round((done / employeeTasks.length) * 100) : 0 };
-  }).filter((employee) => employee.total > 0).sort((a, b) => b.rate - a.rate || b.done - a.done), [employees, periodTasks]);
-
-  const recentTasks = periodTasks.slice(0, 6);
-
-  return (
-    <div className="mx-auto max-w-7xl">
-      <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Pilotage de performance</p>
-          <Title as="h1" variant="page" className="mt-1 mb-1">Bonjour {profile?.name?.split(" ")[0] || "à vous"}</Title>
-          <p className="text-sm text-muted">{isEmployee ? "Voici vos résultats et votre activité." : "Une vue claire de l’activité et de la réalisation de l’entreprise."}</p>
-        </div>
-        <div className="w-full sm:w-56"><Select value={period} onChange={(event) => setPeriod(event.target.value)} options={PERIODS} /></div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard icon={<FaClipboardList />} label="Tâches suivies" value={periodTasks.length} tone="primary" helper="sur la période sélectionnée" />
-        <MetricCard icon={<FaCheckCircle />} label="Taux de réalisation" value={`${completionRate}%`} tone="success" helper={`${completed} tâche(s) terminée(s)`} />
-        <MetricCard icon={<FaClock />} label="À traiter" value={pending} tone="warning" helper="tâches non terminées" />
-        <MetricCard icon={<FaExclamationTriangle />} label="En retard" value={late} tone="danger" helper="créées il y a plus d’un jour" />
-      </div>
-
-      {!isEmployee && <div className="mt-5 grid gap-4 sm:grid-cols-2"><MetricCard icon={<FaUsers />} label="Employés actifs" value={employees.filter((employee) => employee.status !== "DISABLED").length} tone="info" helper="dans l’entreprise" /><MetricCard icon={<FaArrowUp />} label="Productivité moyenne" value={employeePerformance.length ? `${Math.round(employeePerformance.reduce((sum, employee) => sum + employee.rate, 0) / employeePerformance.length)}%` : "0%"} tone="primary" helper="taux moyen des employés actifs" /></div>}
-
-      <div className="mt-7 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
-        <Card>
-          <div className="mb-5 flex items-center justify-between gap-3"><div><h2 className="text-lg font-semibold text-ink">Activité récente</h2><p className="mt-1 text-xs text-muted">Les tâches les plus récemment enregistrées.</p></div><Badge tone="info">{periodTasks.length} total</Badge></div>
-          <div className="space-y-2">{recentTasks.map((task) => <div key={task.id} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-surface-2 px-3 py-3"><div className="min-w-0"><p className="truncate text-sm font-medium text-ink">{task.title}</p><p className="mt-1 text-xs text-muted">{isEmployee ? formatTaskDate(task.createdAt) : `${task.assigneeName || task.assigneeId} · ${formatTaskDate(task.createdAt)}`}</p></div><Badge tone={getTaskTimelineTone(task)}>{getTaskTimelineLabel(task)}</Badge></div>)}{recentTasks.length === 0 && <p className="py-8 text-center text-sm text-muted">Aucune activité sur cette période.</p>}</div>
-        </Card>
-
-        {!isEmployee ? <Card><div className="mb-5"><h2 className="text-lg font-semibold text-ink">Performance des employés</h2><p className="mt-1 text-xs text-muted">Comparaison basée sur les tâches attribuées.</p></div><div className="space-y-4">{employeePerformance.slice(0, 8).map((employee) => <div key={employee.uid}><div className="mb-1.5 flex items-center justify-between gap-3 text-sm"><span className="truncate font-medium text-ink">{employee.name || employee.email}</span><span className="font-semibold text-primary">{employee.rate}%</span></div><div className="h-2 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-primary transition-all" style={{ width: `${employee.rate}%` }} /></div><p className="mt-1 text-xs text-muted">{employee.done}/{employee.total} terminée(s)</p></div>)}{employeePerformance.length === 0 && <p className="py-8 text-center text-sm text-muted">Les performances apparaîtront après l’attribution de tâches.</p>}</div></Card> : <Card><div className="mb-5"><h2 className="text-lg font-semibold text-ink">Mon indicateur principal</h2><p className="mt-1 text-xs text-muted">Votre taux de réalisation sur la période.</p></div><div className="flex items-center gap-5"><div className="flex h-28 w-28 items-center justify-center rounded-full border-[12px] border-primary/15 text-2xl font-bold text-primary" style={{ borderTopColor: completionRate > 0 ? "var(--theme-primary, #1F3A5F)" : undefined }}>{completionRate}%</div><div><p className="font-medium text-ink">{completed} tâche(s) réalisée(s)</p><p className="mt-1 text-sm text-muted">{pending} tâche(s) restante(s)</p><p className="mt-3 text-xs text-muted">Cet indicateur vous aide à suivre votre propre progression.</p></div></div></Card>}
-      </div>
-    </div>
-  );
+  return <div className="mx-auto max-w-7xl">
+    <header className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Analyse de performance</p><Title as="h1" variant="page" className="mt-1 mb-1">Bonjour {profile?.name?.split(" ")[0] || "a vous"}</Title><p className="text-sm text-muted">{isEmployee ? "Suivez visuellement votre activite." : "Une lecture graphique de l'activite de l'entreprise."}</p></div><div className="w-full sm:w-56"><Select value={period} onChange={(event) => setPeriod(event.target.value)} options={PERIODS} /></div></header>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatChip icon={<FaTasks />} label="Taches" value={periodTasks.length} color="primary" /><StatChip icon={<FaCheckCircle />} label="Realisees" value={completed} color="success" /><StatChip icon={<FaClock />} label="A traiter" value={pending} color="warning" /><StatChip icon={<FaChartLine />} label="Taux global" value={`${completionRate}%`} color="blue" /></div>
+    <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]"><Card><ChartHeading icon={<FaChartLine />} title="Evolution de l'activite" text="Taches creees et realisees au fil de la periode." /><LineChart data={buckets} /></Card><Card><ChartHeading icon={<FaCheckCircle />} title="Repartition des statuts" text="Vue synthetique des taches de la periode." /><DonutChart completed={completed} pending={pending} /></Card></div>
+    <div className="mt-6 grid gap-6 xl:grid-cols-2"><Card><ChartHeading icon={<FaChartLine />} title={isEmployee ? "Ma progression" : "Taux de realisation"} text="Pourcentage de taches terminees par intervalle." /><LineChart data={buckets} valueKey="rate" percent /></Card>{!isEmployee ? <Card><ChartHeading icon={<FaUsers />} title="Performance des employes" text="Comparaison des taux de realisation." /><BarChart data={employeePerformance.slice(0, 8)} /></Card> : <RecentTasks tasks={periodTasks.slice(0, 6)} />}</div>
+    {!isEmployee && <div className="mt-6 grid gap-4 sm:grid-cols-3"><Insight label="Employes actifs" value={employees.filter((employee) => employee.status !== "DISABLED").length} icon={<FaUsers />} /><Insight label="Taches en retard" value={overdue} icon={<FaClock />} /><Insight label="Productivite moyenne" value={employeePerformance.length ? `${Math.round(employeePerformance.reduce((sum, item) => sum + item.rate, 0) / employeePerformance.length)}%` : "0%"} icon={<FaChartLine />} /></div>}
+  </div>;
 }
-
-function MetricCard({ icon, label, value, helper, tone }) {
-  const tones = { primary: "bg-primary/10 text-primary", success: "bg-emerald-500/10 text-emerald-600", warning: "bg-amber-500/10 text-amber-600", danger: "bg-red-500/10 text-red-600", info: "bg-sky-500/10 text-sky-600" };
-  return <Card className="relative overflow-hidden"><div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${tones[tone] || tones.primary}`}>{icon}</div><p className="text-sm text-muted">{label}</p><p className="mt-1 text-3xl font-bold tracking-tight text-ink">{value}</p><p className="mt-2 text-xs text-muted">{helper}</p></Card>;
-}
-
+function ChartHeading({ icon, title, text }) { return <div className="mb-5 flex items-start gap-3"><span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</span><div><h2 className="font-semibold text-ink">{title}</h2><p className="mt-1 text-xs text-muted">{text}</p></div></div>; }
+function StatChip({ icon, label, value, color }) { const styles = { primary: "bg-primary/10 text-primary", success: "bg-emerald-500/10 text-emerald-600", warning: "bg-amber-500/10 text-amber-600", blue: "bg-sky-500/10 text-sky-600" }; return <Card className="flex items-center gap-3"><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${styles[color]}`}>{icon}</span><div><p className="text-xs text-muted">{label}</p><p className="text-2xl font-bold text-ink">{value}</p></div></Card>; }
+function Insight({ icon, label, value }) { return <Card className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-2 text-primary">{icon}</span><div><p className="text-xs text-muted">{label}</p><p className="text-xl font-bold text-ink">{value}</p></div></Card>; }
+function LineChart({ data, valueKey = "total", percent = false }) { const width = 700; const height = 250; const pad = { left: 35, right: 12, top: 15, bottom: 35 }; const max = percent ? 100 : Math.max(...data.map((item) => item[valueKey]), 1); const points = data.map((item, index) => { const x = pad.left + index * ((width - pad.left - pad.right) / Math.max(data.length - 1, 1)); const y = pad.top + (height - pad.top - pad.bottom) * (1 - item[valueKey] / max); return { ...item, x, y }; }); const line = points.map((point) => `${point.x},${point.y}`).join(" "); const area = `${pad.left},${height - pad.bottom} ${line} ${points.at(-1)?.x || pad.left},${height - pad.bottom}`; return <div className="w-full overflow-hidden"><svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full" role="img" aria-label="Courbe statistique"><defs><linearGradient id={`area-${valueKey}`} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor={COLORS.primary} stopOpacity=".25" /><stop offset="1" stopColor={COLORS.primary} stopOpacity="0" /></linearGradient></defs>{[0, .25, .5, .75, 1].map((step) => <line key={step} x1={pad.left} x2={width - pad.right} y1={pad.top + step * (height - pad.top - pad.bottom)} y2={pad.top + step * (height - pad.top - pad.bottom)} stroke={COLORS.grid} strokeDasharray="3 5" />)}<polygon points={area} fill={`url(#area-${valueKey})`} /><polyline points={line} fill="none" stroke={COLORS.primary} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />{points.map((point) => <g key={point.label}><circle cx={point.x} cy={point.y} r="4" fill="white" stroke={COLORS.primary} strokeWidth="2"><title>{`${point.label}: ${point[valueKey]}${percent ? "%" : " tache(s)"}`}</title></circle><text x={point.x} y={height - 12} textAnchor="middle" className="fill-muted text-[11px]">{point.label}</text></g>)}</svg></div>; }
+function DonutChart({ completed, pending }) { const total = completed + pending; const radius = 52; const circumference = 2 * Math.PI * radius; const doneLength = total ? completed / total * circumference : 0; return <div className="flex flex-col items-center gap-5 sm:flex-row sm:justify-center"><div className="relative h-40 w-40"><svg viewBox="0 0 140 140" className="h-full w-full -rotate-90"><circle cx="70" cy="70" r={radius} fill="none" stroke="#e9efec" strokeWidth="18" /><circle cx="70" cy="70" r={radius} fill="none" stroke={COLORS.success} strokeWidth="18" strokeDasharray={`${doneLength} ${circumference}`} strokeLinecap="round" /></svg><div className="absolute inset-0 flex flex-col items-center justify-center"><strong className="text-2xl text-ink">{total ? Math.round(completed / total * 100) : 0}%</strong><span className="text-[11px] text-muted">realisation</span></div></div><div className="space-y-3 text-sm"><Legend color={COLORS.success} label="Realisees" value={completed} /><Legend color={COLORS.warning} label="A traiter" value={pending} /></div></div>; }
+function Legend({ color, label, value }) { return <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} /><span className="text-muted">{label}</span><strong className="ml-auto text-ink">{value}</strong></div>; }
+function BarChart({ data }) { return <div className="space-y-4">{data.map((item) => <div key={item.uid}><div className="mb-1 flex justify-between gap-3 text-xs"><span className="max-w-[70%] truncate font-medium text-ink">{item.name || item.email}</span><span className="font-semibold text-primary">{item.rate}%</span></div><div className="h-2.5 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-primary" style={{ width: `${item.rate}%` }} /></div><p className="mt-1 text-[11px] text-muted">{item.done}/{item.total} taches realisees</p></div>)}{data.length === 0 && <EmptyChart text="Pas encore de donnees par employe." />}</div>; }
+function RecentTasks({ tasks }) { return <Card><ChartHeading icon={<FaTasks />} title="Activite recente" text="Vos dernieres taches de la periode." /><div className="space-y-2">{tasks.map((task) => <div key={task.id} className="flex items-center justify-between gap-3 rounded-xl bg-surface-2 px-3 py-3"><div className="min-w-0"><p className="truncate text-sm font-medium text-ink">{task.title}</p><p className="mt-1 text-xs text-muted">{formatTaskDate(task.createdAt)}</p></div><Badge tone={isTaskCompleted(task) ? "success" : "warning"}>{isTaskCompleted(task) ? "Fait" : "A traiter"}</Badge></div>)}{tasks.length === 0 && <EmptyChart text="Aucune activite sur cette periode." />}</div></Card>; }
+function EmptyChart({ text }) { return <p className="py-8 text-center text-sm text-muted">{text}</p>; }
