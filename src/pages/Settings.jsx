@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { FaCheck, FaFont, FaGlobe, FaPalette } from "react-icons/fa";
 import Card from "../components/ui/card";
-import Button from "../components/ui/button";
+import Button from "../components/ui/Button";
 import Select from "../components/ui/select";
 import { useTheme } from "../context/ThemeContext";
 import { SUPPORTED_LANGUAGES, useLanguage } from "../context/LanguageContext";

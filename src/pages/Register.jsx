@@ -4,7 +4,7 @@ import { createUserWithEmailAndPassword } from "firebase/auth";
 import { auth } from "../firebase/config";
 import { api } from "../services/api";
 import { useLanguage } from "../context/LanguageContext";
-import Button from "../components/ui/button";
+import Button from "../components/ui/Button";
 import Input from "../components/ui/input";
 import Alert from "../components/ui/alert";
 import Card from "../components/ui/card";

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../services/api";
 import { useLanguage } from "../context/LanguageContext";
-import Button from "../components/ui/button";
+import Button from "../components/ui/Button";
 import Card from "../components/ui/card";
 import Input from "../components/ui/input";
 import Select from "../components/ui/select";

@@ -5,7 +5,7 @@ import { FaArrowTrendUp, FaBolt, FaCalendarDays, FaCheck, FaDownload, FaFileLine
 import { api } from "../services/api";
 import { buildReportViewModel, formatReportDate } from "../utils/reportCalculations";
 import { EmployeeTaskChart, GlobalTaskChart, ParticipationDonut } from "../components/reports/ReportCharts";
-import Button from "../components/ui/button";
+import Button from "../components/ui/Button";
 import BrandLogo from "../components/BrandLogo";
 
 const KPI_CONFIG = [

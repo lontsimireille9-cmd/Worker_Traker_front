@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
-import Button from "../components/ui/button";
+import Button from "../components/ui/Button";
 import Input from "../components/ui/input";
 import Alert from "../components/ui/alert";
 import Card from "../components/ui/card";

@@ -7,7 +7,7 @@ import Card from "../components/ui/card";
 import Title from "../components/ui/title";
 import Badge from "../components/ui/badge";
 import Select from "../components/ui/select";
-import Button from "../components/ui/button";
+import Button from "../components/ui/Button";
 import TaskDetailsDialog from "../components/tasks/TaskDetailsDialog";
 import {
   formatTaskDate,

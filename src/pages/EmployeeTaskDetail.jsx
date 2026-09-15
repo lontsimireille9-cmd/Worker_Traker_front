@@ -5,7 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import Card from "../components/ui/card";
 import Title from "../components/ui/title";
 import Badge from "../components/ui/badge";
-import Button from "../components/ui/button";
+import Button from "../components/ui/Button";
 import Select from "../components/ui/select";
 import TaskDetailsDialog from "../components/tasks/TaskDetailsDialog";
 import {

@@ -7,7 +7,7 @@ import { companyAuth } from "../firebase/config";
 import { useAuth } from "../context/AuthContext";
 import Card from "../components/ui/card";
 import Input from "../components/ui/input";
-import Button from "../components/ui/button";
+import Button from "../components/ui/Button";
 import Alert from "../components/ui/alert";
 import Badge from "../components/ui/badge";
 
