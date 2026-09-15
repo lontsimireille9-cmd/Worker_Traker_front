@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root { color-scheme: light; }
+html, body, #root { width: 100%; max-width: 100%; min-height: 100%; margin: 0; overflow-x: hidden; }
+body { min-width: 0; background: #F5F8FC; }
+*, *::before, *::after { box-sizing: border-box; scroll-behavior: smooth; }
+img, svg, video, canvas { max-width: 100%; }
+button, input, select, textarea { max-width: 100%; }
+:focus-visible { outline: 2px solid #1769e8; outline-offset: 2px; }
+
+/* The application shell owns vertical scrolling. This prevents mobile dashboards from
+   becoming horizontally scrollable because of a wide child component. */
+#root { overflow: hidden; }
+
+.report-page { width: 100%; max-width: 100%; min-width: 0; }
+.report-table-wrap { width: 100%; overflow-x: auto; }
+
+@media print {
+  html, body { background: #fff !important; overflow: visible !important; }
+  #root { overflow: visible !important; }
+  .report-page { break-after: page; page-break-after: always; width: 100%; max-width: 100%; min-height: auto !important; height: auto !important; border-radius: 0 !important; }
+  .report-page:last-child { break-after: auto; page-break-after: auto; }
+}

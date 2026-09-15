@@ -1,0 +1,2 @@
+import {createContext,useContext,useEffect,useState} from 'react';
+const C=createContext(null); export function SettingsProvider({children}){const [reduced,setReduced]=useState(localStorage.getItem('dl-reduced-motion')==='1');useEffect(()=>localStorage.setItem('dl-reduced-motion',reduced?'1':'0'),[reduced]);return <C.Provider value={{reduced,setReduced}}>{children}</C.Provider>} export const useSettings=()=>useContext(C);

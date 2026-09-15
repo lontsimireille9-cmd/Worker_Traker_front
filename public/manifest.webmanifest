@@ -1,0 +1,10 @@
+{
+  "name": "Suivi Employés",
+  "short_name": "Suivi Employés",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F5F8FC",
+  "theme_color": "#1769E8",
+  "description": "Plateforme de suivi de l'activité et des tâches des employés.",
+  "icons": [{"src": "/suivi-employes-logo.png", "sizes": "1000x722", "type": "image/png", "purpose": "any"}]
+}
