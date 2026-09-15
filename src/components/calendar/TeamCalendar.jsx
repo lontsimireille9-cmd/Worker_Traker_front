@@ -63,15 +63,15 @@ export default function TeamCalendar({ attendance = [], tasks = [] }) {
   return (
     <Card>
       <div className="flex items-center justify-between mb-4">
-        <button onClick={() => changeMonth(-1)} className="p-2 rounded-lg hover:bg-surface-2 text-ink/70">
+        <Button onClick={() => changeMonth(-1)} className="p-2 rounded-lg hover:bg-surface-2 text-ink/70">
           <FaChevronLeft />
-        </button>
+        </Button>
         <h3 className="font-display text-lg text-ink capitalize">
           {currentDate.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}
         </h3>
-        <button onClick={() => changeMonth(1)} className="p-2 rounded-lg hover:bg-surface-2 text-ink/70">
+        <Button onClick={() => changeMonth(1)} className="p-2 rounded-lg hover:bg-surface-2 text-ink/70">
           <FaChevronRight />
-        </button>
+        </Button>
       </div>
 
       <div className="grid grid-cols-7 gap-1 text-center text-xs text-muted mb-2">
@@ -89,7 +89,7 @@ export default function TeamCalendar({ attendance = [], tasks = [] }) {
           const isSelected = selectedDay === day;
 
           return (
-            <button
+            <Button
               key={i}
               onClick={() => setSelectedDay(day)}
               className={`relative aspect-square rounded-lg text-sm flex flex-col items-center justify-center transition ${
@@ -101,7 +101,7 @@ export default function TeamCalendar({ attendance = [], tasks = [] }) {
                 {hasAttendance && <span className="h-1 w-1 rounded-full bg-secondary" />}
                 {dayTasks.length > 0 && <span className="h-1 w-1 rounded-full bg-accent" />}
               </span>
-            </button>
+            </Button>
           );
         })}
       </div>

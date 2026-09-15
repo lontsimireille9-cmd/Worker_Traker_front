@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { FaHistory, FaUser } from "react-icons/fa";
-import Button from "../ui/button";
+import Button from "../ui/Button";
 import { getTaskStatusLabel, getTaskStatusColor } from "../../utils/getTaskDisplayStatus";
 
 /**

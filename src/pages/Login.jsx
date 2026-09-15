@@ -62,20 +62,20 @@ export default function Login() {
         </div>
 
         <div className="flex mb-4 rounded-lg border border-line overflow-hidden text-sm">
-          <button
-            type="button"
+          <Button
+            type="Button"
             onClick={() => setMode("employee")}
             className={`flex-1 py-2 transition ${mode === "employee" ? "bg-primary text-white" : "bg-surface text-ink/60"}`}
           >
             {t("employee")}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            type="Button"
             onClick={() => setMode("admin")}
             className={`flex-1 py-2 transition ${mode === "admin" ? "bg-primary text-white" : "bg-surface text-ink/60"}`}
           >
             {t("administration")}
-          </button>
+          </Button>
         </div>
 
         <Card>

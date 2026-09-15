@@ -181,7 +181,7 @@ export default function Tasks() {
                   className="absolute right-4 top-4 z-10 w-44 rounded-xl border border-line bg-surface p-2 shadow-xl"
                   onClick={(event) => event.stopPropagation()}
                 >
-                  <button
+                  <Button
                     className="block w-full rounded-lg px-3 py-2 text-left text-sm text-ink hover:bg-surface-2"
                     onClick={(event) => {
                       event.stopPropagation();
@@ -190,8 +190,8 @@ export default function Tasks() {
                     }}
                   >
                     {t("edit")}
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     className="block w-full rounded-lg px-3 py-2 text-left text-sm text-ink hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={(event) => {
                       event.stopPropagation();
@@ -200,7 +200,7 @@ export default function Tasks() {
                     disabled={task.status === "COMPLETED"}
                   >
                     {t("validate")}
-                  </button>
+                  </Button>
                 </div>
               )}
             </Card>

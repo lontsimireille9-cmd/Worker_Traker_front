@@ -186,7 +186,7 @@ export default function Messages() {
 
   return (
     <div className="flex h-full min-h-0 flex-1 flex-col">
-      {error && <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"><FaExclamationTriangle size={13} /> <span className="flex-1">{error}</span><button type="button" onClick={() => setError('')} className="text-xs font-semibold">Fermer</button></div>}
+      {error && <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"><FaExclamationTriangle size={13} /> <span className="flex-1">{error}</span><Button type="Button" onClick={() => setError('')} className="text-xs font-semibold">Fermer</Button></div>}
       <div className="mt-0 flex min-h-0 flex-1 overflow-hidden border border-line bg-surface shadow-[0_12px_40px_rgba(24,46,38,0.06)] lg:rounded-2xl">
         <div className={`${selectedId ? 'hidden lg:flex' : 'flex'} min-h-0 flex-1 lg:w-[340px] lg:flex-none`}><ConversationList conversations={conversations} contacts={contacts} selectedId={selectedId} search={search} onSearch={setSearch} onSelect={setSelectedId} onContactSelect={openContact} onNew={() => setModalOpen(true)} loading={loadingConversations} /></div>
         <div className={`${selectedId ? 'flex' : 'hidden lg:flex'} min-w-0 flex-1`}><ChatWindow conversation={conversation || selectedConversation} messages={messages} currentUserId={profile?.uid} loading={loadingMessages} sending={sending} hasMore={hasMore} onLoadOlder={() => before && loadConversation(selectedId, before)} onSend={sendMessage} onBack={() => setSelectedId(null)} onOpenGroupInfo={() => setGroupInfoOpen(true)} /></div>

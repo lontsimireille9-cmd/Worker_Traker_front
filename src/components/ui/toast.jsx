@@ -29,9 +29,9 @@ export default function Toast({ type = "info", message, children, className = ""
       <div className="flex items-start gap-3">
         <span className="text-lg flex-shrink-0">{icons[type]}</span>
         <div className="flex-1">{message ? <p>{message}</p> : children}</div>
-        <button onClick={() => setIsVisible(false)} className="flex-shrink-0 text-current/50 hover:text-current">
+        <Button onClick={() => setIsVisible(false)} className="flex-shrink-0 text-current/50 hover:text-current">
           ✕
-        </button>
+        </Button>
       </div>
     </div>
   );

@@ -69,10 +69,10 @@ export default function HoverLineChart({ data, valueKey = "total", percent = fal
 
   return (
     <>
-      <button type="button" onClick={() => setExpanded(true)} className="group relative block w-full cursor-zoom-in text-left" aria-label="Ouvrir le graphique détaillé">
+      <Button type="Button" onClick={() => setExpanded(true)} className="group relative block w-full cursor-zoom-in text-left" aria-label="Ouvrir le graphique détaillé">
         {compactChart}
         <span className="pointer-events-none absolute right-2 top-1 flex h-8 w-8 items-center justify-center rounded-lg bg-surface/90 text-primary opacity-70 shadow-sm transition group-hover:opacity-100"><FaExpand size={13} /></span>
-      </button>
+      </Button>
       {expanded && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/40 p-3 backdrop-blur-sm sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) setExpanded(false); }}>
           <div className="max-h-[92dvh] w-full max-w-5xl overflow-y-auto overflow-x-hidden rounded-2xl border border-line bg-surface p-4 shadow-2xl sm:p-6">
@@ -81,7 +81,7 @@ export default function HoverLineChart({ data, valueKey = "total", percent = fal
                 <h2 className="text-lg font-semibold text-ink">{percent ? t("averageProductivity") : t("activityEvolution")}</h2>
                 <p className="mt-1 text-xs text-muted">Vue détaillée avec les valeurs de la période.</p>
               </div>
-              <button type="button" onClick={() => setExpanded(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-ink" aria-label="Fermer"><FaTimes /></button>
+              <Button type="Button" onClick={() => setExpanded(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-ink" aria-label="Fermer"><FaTimes /></Button>
             </div>
             <div className="mb-4 flex flex-wrap gap-4 text-xs text-muted">
               <Legend color={COLORS.primary} label={percent ? t("averageProductivity") : t("created")} value="" />

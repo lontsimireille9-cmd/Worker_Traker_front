@@ -7,7 +7,7 @@ html, body, #root { width: 100%; max-width: 100%; min-height: 100%; margin: 0; o
 body { min-width: 0; background: #F5F8FC; }
 *, *::before, *::after { box-sizing: border-box; scroll-behavior: smooth; }
 img, svg, video, canvas { max-width: 100%; }
-button, input, select, textarea { max-width: 100%; }
+Button, input, select, textarea { max-width: 100%; }
 :focus-visible { outline: 2px solid #1769e8; outline-offset: 2px; }
 
 /* The application shell owns vertical scrolling. This prevents mobile dashboards from

@@ -8,7 +8,7 @@ import Input from "../components/ui/input";
 import Alert from "../components/ui/alert";
 import Title from "../components/ui/title";
 import Badge from "../components/ui/badge";
-import Dialog from "../components/ui/dialog";
+import Dialog from "../components/ui/Dialog";
 
 export default function Teams() {
   const { profile } = useAuth();
@@ -110,7 +110,7 @@ export default function Teams() {
             </div>
             <div className="w-52">
               <label className="block text-sm font-medium mb-1.5 text-ink/70">{t("leader")}</label>
-              <Button type="button" variant="outline" onClick={() => openLeaderModal(null)}>
+              <Button type="Button" variant="outline" onClick={() => openLeaderModal(null)}>
                 {form.leaderId ? t("changeLeader") : t("chooseLeader")}
               </Button>
             </div>
@@ -134,9 +134,9 @@ export default function Teams() {
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {teams.map((team) => (
-          <button
+          <Button
             key={team.id}
-            type="button"
+            type="Button"
             onClick={() => openTeamMembers(team)}
             className="text-left rounded-xl border border-line bg-surface p-5 shadow-sm hover:shadow-md transition"
           >
@@ -153,7 +153,7 @@ export default function Teams() {
               <span>{team.memberIds?.length || 0} membre(s)</span>
               <span className="text-primary">{t("viewMembers")}</span>
             </div>
-          </button>
+          </Button>
         ))}
         {teams.length === 0 && <p className="text-sm text-muted">{t("noTeams")}</p>}
       </div>
@@ -161,9 +161,9 @@ export default function Teams() {
       <Dialog open={leaderModalOpen} onClose={() => setLeaderModalOpen(false)} title={t("chooseLeader")}>
         <div className="space-y-3">
           {users.map((user) => (
-            <button
+            <Button
               key={user.uid}
-              type="button"
+              type="Button"
               onClick={() => {
                 setForm((current) => ({ ...current, leaderId: user.uid }));
                 setLeaderModalOpen(false);
@@ -172,7 +172,7 @@ export default function Teams() {
             >
               <p className="font-medium">{user.name || user.email || user.uid}</p>
               <p className="text-xs text-muted">{user.role} • {user.email}</p>
-            </button>
+            </Button>
           ))}
         </div>
       </Dialog>

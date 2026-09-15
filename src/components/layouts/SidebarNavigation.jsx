@@ -89,15 +89,15 @@ export default function SidebarNavigation({ onToggle }) {
     >
       <div className="relative flex h-[76px] flex-shrink-0 items-center border-b border-line px-4">
         {isCollapsed ? <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl"><BrandLogo compact className="h-10 w-10" /></div> : <div className="min-w-0 max-w-[190px]"><BrandLogo className="h-12 w-auto max-w-full" /></div>}
-        <button
-          type="button"
+        <Button
+          type="Button"
           onClick={() => setIsCollapsed((value) => !value)}
           className="absolute -right-3 top-8 flex h-6 w-6 items-center justify-center rounded-full border border-line bg-surface text-ink/60 shadow-sm transition hover:text-primary"
           title={isCollapsed ? "Étendre" : "Réduire"}
           aria-label={isCollapsed ? "Étendre la navigation" : "Réduire la navigation"}
         >
           {isCollapsed ? <FaChevronRight size={10} /> : <FaChevronLeft size={10} />}
-        </button>
+        </Button>
       </div>
 
       <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-5" aria-label={t("mainNavigation")}>
@@ -120,8 +120,8 @@ export default function SidebarNavigation({ onToggle }) {
             </div>
           )}
         </div>
-        <button
-          type="button"
+        <Button
+          type="Button"
           onClick={logout}
           title="Se déconnecter"
           aria-label="Se déconnecter"
@@ -129,7 +129,7 @@ export default function SidebarNavigation({ onToggle }) {
         >
           <FaSignOutAlt />
           {!isCollapsed && "Se déconnecter"}
-        </button>
+        </Button>
       </div>
     </aside>
   );

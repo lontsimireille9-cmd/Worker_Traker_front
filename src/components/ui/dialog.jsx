@@ -10,9 +10,9 @@ export default function Dialog({ open, onClose, title, children, className = "" 
         {title && (
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-display text-xl text-ink">{title}</h3>
-            <button onClick={onClose} className="text-muted hover:text-ink transition">
+            <Button onClick={onClose} className="text-muted hover:text-ink transition">
               <FaTimes size={18} />
-            </button>
+            </Button>
           </div>
         )}
         <div>{children}</div>

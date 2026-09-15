@@ -1,5 +1,5 @@
-import Dialog from "../ui/dialog";
-import Button from "../ui/button";
+import Dialog from "../ui/Dialog";
+import Button from "../ui/Button";
 import Badge from "../ui/badge";
 import {
   formatTaskDate,

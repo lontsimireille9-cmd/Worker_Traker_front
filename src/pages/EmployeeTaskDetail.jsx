@@ -195,7 +195,7 @@ export default function EmployeeTaskDetail() {
             const completed = dayTasks.filter((task) => task.status === "COMPLETED").length;
             return (
               <Card key={dateKey}>
-                <button className="w-full text-left" onClick={() => setExpandedDate(isOpen ? null : dateKey)}>
+                <Button className="w-full text-left" onClick={() => setExpandedDate(isOpen ? null : dateKey)}>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="font-medium text-ink">{formatTaskDate(`${dateKey}T12:00:00`)}</p>
@@ -205,12 +205,12 @@ export default function EmployeeTaskDetail() {
                       {completed}/{dayTasks.length}
                     </Badge>
                   </div>
-                </button>
+                </Button>
 
                 {isOpen && (
                   <div className="mt-4 space-y-2">
                     {dayTasks.map((task) => (
-                      <button
+                      <Button
                         key={task.id}
                         className="w-full rounded-xl border border-line bg-surface-2 px-4 py-3 text-left hover:border-primary/30"
                         onClick={() => setSelectedTask(task)}
@@ -222,7 +222,7 @@ export default function EmployeeTaskDetail() {
                           </div>
                           <Badge className={`border ${getTaskStatusColor(task.status)}`}>{getTaskStatusLabel(task.status)}</Badge>
                         </div>
-                      </button>
+                      </Button>
                     ))}
                   </div>
                 )}

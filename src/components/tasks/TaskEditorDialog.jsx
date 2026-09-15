@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import Dialog from "../ui/dialog";
-import Button from "../ui/button";
+import Dialog from "../ui/Dialog";
+import Button from "../ui/Button";
 import Input from "../ui/input";
 import Textarea from "../ui/textarea";
 
@@ -80,7 +80,7 @@ export default function TaskEditorDialog({
         )}
 
         <div className="flex justify-end gap-3 pt-2">
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <Button type="Button" variant="ghost" onClick={onClose}>
             Annuler
           </Button>
           <Button type="submit" loading={loading}>
