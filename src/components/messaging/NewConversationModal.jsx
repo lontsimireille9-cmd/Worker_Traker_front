@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { FaSearch, FaUser, FaUsers } from 'react-icons/fa';
-import Dialog from '../ui/Dialog';
+import Dialog from '../ui/dialog';
 import Button from '../ui/Button';
 
 export default function NewConversationModal({ open, onClose, onPrivate, onCreateGroup, searchUsers, creating }) {

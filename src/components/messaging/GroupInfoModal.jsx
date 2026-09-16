@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react';
 import { FaSearch, FaTrash, FaUserMinus, FaUserPlus, FaSignOutAlt } from 'react-icons/fa';
-import Dialog from '../ui/Dialog';
+import Dialog from '../ui/dialog';
 import Button from '../ui/Button';
 
 export default function GroupInfoModal({ open, onClose, conversation, currentUserId, onRename, onAddMember, onRemoveMember, onLeave, onDelete, searchUsers, busy }) {

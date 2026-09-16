@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Dialog from "../ui/Dialog";
+import Dialog from "../ui/dialog";
 import Button from "../ui/Button";
 import Input from "../ui/input";
 import Textarea from "../ui/textarea";

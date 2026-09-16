@@ -1,4 +1,4 @@
-import Dialog from "../ui/Dialog";
+import Dialog from "../ui/dialog";
 import Button from "../ui/Button";
 import Badge from "../ui/badge";
 import {
