@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import MessageBubble from './MessageBubble';
+import Button from "../ui/Button";
 
 export default function MessageList({ messages, currentUserId, loading, onLoadOlder, hasMore }) {
   const endRef = useRef(null);

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import Legend from "./Legend";
 import { FaExpand, FaTimes } from "react-icons/fa";
+import Button from "../ui/Button";
 
 const COLORS = { primary: "#1769E8", success: "#10B981", grid: "#DCE7F5" };
 

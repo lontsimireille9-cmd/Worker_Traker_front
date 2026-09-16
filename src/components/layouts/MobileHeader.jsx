@@ -3,6 +3,7 @@ import { FaSignOutAlt } from "react-icons/fa";
 import { useAuth } from "../../context/AuthContext";
 import { useLanguage } from "../../context/LanguageContext";
 import BrandLogo from "../BrandLogo";
+import Button from "../ui/Button";
 
 export default function MobileHeader({ title, showBackButton, onBack }) {
   const { logout } = useAuth();

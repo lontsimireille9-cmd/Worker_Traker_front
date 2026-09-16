@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { FaPaperPlane } from 'react-icons/fa';
+import Button from "../ui/Button";
 
 export default function MessageInput({ onSend, sending }) {
   const [content, setContent] = useState('');

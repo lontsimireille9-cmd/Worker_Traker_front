@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FaExpand, FaTimes } from "react-icons/fa";
 import { formatShortDay } from "../../utils/reportCalculations";
+import Button from "../ui/Button";
 
 function getPoints(values, width, height, maxValue) {
   if (!values.length) return "";

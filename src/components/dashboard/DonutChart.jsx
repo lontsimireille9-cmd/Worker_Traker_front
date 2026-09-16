@@ -1,5 +1,6 @@
 import Legend from "./Legend";
 import { useState } from "react";
+import Button from "../ui/Button";
 import { FaExpand, FaTimes } from "react-icons/fa";
 
 const COLORS = { success: "#159570", warning: "#d58b28" };

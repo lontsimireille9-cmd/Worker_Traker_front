@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { FaExclamationTriangle } from 'react-icons/fa';
 import { api } from '../services/api';
+import Button from "../components/ui/Button";
 import { useAuth } from '../context/AuthContext';
 import ConversationList from '../components/messaging/ConversationList';
 import ChatWindow from '../components/messaging/ChatWindow';

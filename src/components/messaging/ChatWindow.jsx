@@ -1,6 +1,7 @@
 import { FaArrowLeft, FaUsers, FaUser, FaEllipsisV } from 'react-icons/fa';
 import MessageList from './MessageList';
 import MessageInput from './MessageInput';
+import Button from "../ui/Button";
 
 export default function ChatWindow({ conversation, messages, currentUserId, loading, sending, hasMore, onLoadOlder, onSend, onBack, onOpenGroupInfo }) {
   if (!conversation) return <section className="hidden min-w-0 flex-1 items-center justify-center bg-canvas lg:flex"><div className="text-center"><FaUsers className="mx-auto mb-3 text-3xl text-muted/50" /><p className="text-sm font-semibold text-ink">Sélectionnez une conversation</p><p className="mt-1 text-xs text-muted">Vos messages apparaîtront ici.</p></div></section>;

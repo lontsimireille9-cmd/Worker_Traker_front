@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Button from "../ui/Button";
 
 export default function Toast({ type = "info", message, children, className = "", duration = 5000, onClose }) {
   const [isVisible, setIsVisible] = useState(true);

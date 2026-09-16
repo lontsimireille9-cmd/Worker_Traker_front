@@ -1,3 +1,4 @@
+import Button from "../ui/Button";
 import { FaUsers } from 'react-icons/fa';
 
 function initials(name = '') {

@@ -1,5 +1,6 @@
 import { FaSearch, FaPlus, FaUsers, FaUser } from 'react-icons/fa';
 import ConversationItem from './ConversationItem';
+import Button from "../ui/Button";
 
 export default function ConversationList({ conversations, contacts, selectedId, search, onSearch, onSelect, onContactSelect, onNew, loading }) {
   const filtered = conversations.filter((item) => item.name.toLowerCase().includes(search.trim().toLowerCase()));

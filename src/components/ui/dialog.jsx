@@ -1,5 +1,6 @@
 import React from "react";
 import { FaTimes } from "react-icons/fa";
+import Button from "../ui/Button";
 
 export default function Dialog({ open, onClose, title, children, className = "" }) {
   if (!open) return null;

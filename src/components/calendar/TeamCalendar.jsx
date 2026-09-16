@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { FaChevronLeft, FaChevronRight, FaCheckCircle, FaClock } from "react-icons/fa";
 import Card from "../ui/card";
 import Badge from "../ui/badge";
+import Button from "../ui/Button";
 
 const WEEKDAYS = ["L", "M", "M", "J", "V", "S", "D"];
 
