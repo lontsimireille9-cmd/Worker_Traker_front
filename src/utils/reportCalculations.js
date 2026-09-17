@@ -13,7 +13,9 @@ export function formatReportDate(value, options = {}) {
 
 export function formatShortDay(value) {
   const date = parseReportDate(value);
-  return date ? new Intl.DateTimeFormat("fr-FR", { day: "2-digit", month: "short" }).format(date) : "—";
+  if (!date) return "—";
+  const month = new Intl.DateTimeFormat("fr-FR", { month: "short" }).format(date).replace(".", "").slice(0, 3);
+  return `${String(date.getDate()).padStart(2, "0")} ${month}`;
 }
 
 export function getParticipation(employee, total) {

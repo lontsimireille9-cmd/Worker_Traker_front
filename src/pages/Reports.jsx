@@ -4,7 +4,7 @@ import { jsPDF } from "jspdf";
 import { FaArrowTrendUp, FaBolt, FaCalendarDays, FaCheck, FaDownload, FaFileLines, FaTrash, FaTriangleExclamation, FaXmark } from "react-icons/fa6";
 import { api } from "../services/api";
 import { buildReportViewModel, formatReportDate } from "../utils/reportCalculations";
-import { EmployeeTaskChart, GlobalTaskChart, ParticipationDonut } from "../components/reports/ReportCharts";
+import SuperAdminReportSections from "../components/reports/SuperAdminReportSections";
 import Button from "../components/ui/Button";
 import BrandLogo from "../components/BrandLogo";
 
@@ -18,14 +18,20 @@ const KPI_CONFIG = [
 function localDate(value) { return value.toISOString().slice(0, 10); }
 function firstDayOfMonth() { const date = new Date(); return localDate(new Date(date.getFullYear(), date.getMonth(), 1)); }
 function today() { return localDate(new Date()); }
+function shiftDate(value, days) { const date = new Date(`${value}T00:00:00`); date.setDate(date.getDate() + days); return localDate(date); }
+function startOfMonthDate(value) { const date = new Date(`${value}T00:00:00`); return localDate(new Date(date.getFullYear(), date.getMonth(), 1)); }
+function startOfYearDate(value) { const date = new Date(`${value}T00:00:00`); return localDate(new Date(date.getFullYear(), 0, 1)); }
+function startOfWeekDate(value) { const date = new Date(`${value}T00:00:00`); const day = date.getDay() || 7; date.setDate(date.getDate() - day + 1); return localDate(date); }
 function Card({ children, className = "" }) { return <section className={`rounded-xl border border-[#DCE7F5] bg-white p-4 shadow-[0_5px_18px_rgba(18,52,95,.04)] ${className}`}>{children}</section>; }
 function Header({ report }) { return <header className="flex flex-wrap items-start justify-between gap-4 border-b border-[#DCE7F5] pb-5"><div className="flex min-w-0 items-center gap-3"><div className="w-44 max-w-[55%]"><BrandLogo /></div><div><h2 className="sr-only">SuiviEmployés</h2><p className="text-xs text-slate-500">Plus d'engagement, plus de résultats</p></div></div><div className="min-w-0 text-right"><p className="text-[11px] font-bold uppercase tracking-[.12em] text-[#12345F]">Rapport d'activité des employés</p><p className="mt-1 text-xs text-slate-500">Généré par le Super Admin</p><p className="mt-1 text-[11px] text-slate-400">{formatReportDate(report.endDate)}</p></div></header>; }
 function Footer({ report, page }) { return <footer className="mt-auto flex items-center justify-between border-t border-[#DCE7F5] pt-3 text-[10px] text-slate-500"><span className="font-semibold text-[#12345F]">SuiviEmployés <span className="font-normal text-slate-400">- Rapport généré le {new Date().toLocaleString("fr-FR")}</span></span><span>{formatReportDate(report.startDate)} - {formatReportDate(report.endDate)} <strong className="ml-4 text-[#12345F]">Page {page} / 2</strong></span></footer>; }
-function ReportPages({ report, reportRoot }) {
+function ReportPages({ report, comparisons, reportRoot }) {
+  const safeComparisons = comparisons || report.comparisons || { DM: report, WW: report, MM: report, MY: report, YY: report };
+  return <SuperAdminReportSections report={report} comparisons={safeComparisons} reportRoot={reportRoot} />;
   const employees = report.employees || [];
   const daily = report.daily || [];
   const chartEmployees = employees.slice(0, 8);
-  const total = report.completedTasks || 0;
+    const total = report.completedTasks || 0; // Keeping the original line for context
   return <div ref={reportRoot} className="space-y-5">
     <div className="report-page flex min-w-0 flex-col gap-5 rounded-xl bg-[#F5F8FC] p-4 sm:p-5">
       <Header report={report} />
@@ -34,12 +40,7 @@ function ReportPages({ report, reportRoot }) {
       <div className="grid gap-4 lg:grid-cols-2"><Card><ChartTitle title="Évolution des tâches par employé" text="Nombre de tâches réalisées par employé et par jour." /><EmployeeTaskChart daily={daily} employees={chartEmployees} /><Legend employees={chartEmployees} /></Card><Card><ChartTitle title="Évolution de toutes les tâches" text="Total des tâches créées chaque jour sur la période." /><GlobalTaskChart daily={daily} /><p className="text-center text-xs text-slate-500">{report.totalTasks} tâches au total sur {report.periodDays} jours</p></Card></div>
       <Footer report={report} page={1} />
     </div>
-    <div className="report-page flex min-w-0 flex-col gap-5 rounded-xl bg-[#F5F8FC] p-4 sm:p-5">
-      <Header report={report} /><div><h2 className="text-2xl font-bold text-[#12345F]">Analyse de participation</h2><p className="text-sm text-slate-500">Participation, moyenne quotidienne et contribution aux tâches réalisées.</p></div>
-      <Card><h3 className="font-bold text-[#12345F]">Participation des employés</h3><p className="mb-5 text-xs text-slate-500">Pourcentage de tâches réalisées par chaque employé.</p>{employees.length ? <ParticipationDonut employees={employees} total={total} /> : <p className="py-10 text-center text-sm text-slate-500">Aucune tâche réalisée.</p>}</Card>
-      <Card className="flex-1"><h3 className="font-bold text-[#12345F]">Détail par employé</h3><p className="mb-4 text-xs text-slate-500">Nombre de tâches, moyenne quotidienne et participation.</p><div className="hidden overflow-hidden rounded-lg border border-[#DCE7F5] sm:block"><table className="w-full text-left text-xs"><thead className="bg-[#EAF2FC] text-[#12345F]"><tr><th className="px-4 py-3">Employé</th><th className="px-4 py-3 text-right">Tâches</th><th className="px-4 py-3 text-right">Moyenne / jour</th><th className="px-4 py-3 text-right">Participation</th></tr></thead><tbody>{employees.map((employee) => <tr key={employee.uid} className="border-t border-[#E8EEF6]"><td className="px-4 py-3 font-medium text-slate-700"><span className="mr-2 inline-block h-2 w-2 rounded-full" style={{ backgroundColor: employee.color }} />{employee.name}</td><td className="px-4 py-3 text-right">{employee.completed}</td><td className="px-4 py-3 text-right">{employee.dailyAverage}</td><td className="px-4 py-3 text-right font-semibold text-[#12345F]">{employee.participation}%</td></tr>)}</tbody><tfoot className="bg-[#EAF2FC] font-bold text-[#12345F]"><tr><td className="px-4 py-3">Total</td><td className="px-4 py-3 text-right">{total}</td><td className="px-4 py-3 text-right">{employees.reduce((sum, employee) => sum + employee.dailyAverage, 0).toFixed(1)}</td><td className="px-4 py-3 text-right">{report.participationTotal.toFixed(1)}%</td></tr></tfoot></table></div><div className="space-y-2 sm:hidden">{employees.map((employee) => <div key={employee.uid} className="rounded-xl border border-[#DCE7F5] bg-[#F8FAFD] p-3"><div className="flex items-center justify-between gap-3"><div className="min-w-0 flex items-center gap-2"><span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: employee.color }} /><span className="truncate text-sm font-semibold text-slate-700">{employee.name}</span></div><strong className="text-sm text-[#12345F]">{employee.participation}%</strong></div><div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500"><span>Tâches : <strong className="text-slate-700">{employee.completed}</strong></span><span>Moyenne/jour : <strong className="text-slate-700">{employee.dailyAverage}</strong></span></div></div>)}<div className="rounded-xl bg-[#EAF2FC] p-3 text-xs font-semibold text-[#12345F]">Total : {total} tâches · {report.participationTotal.toFixed(1)}% de participation</div></div></Card>
-      <Footer report={report} page={2} />
-    </div>
+    <SuperAdminReportSections report={report} comparisons={comparisons} reportRoot={reportRoot} />
   </div>;
 }
 function ChartTitle({ title, text }) { return <div className="mb-2 flex items-center gap-2"><FaArrowTrendUp className="text-[#1769E8]" /><div><h3 className="font-bold text-[#12345F]">{title}</h3><p className="text-[11px] text-slate-500">{text}</p></div></div>; }
@@ -49,6 +50,7 @@ export default function Reports() {
   const [startDate, setStartDate] = useState(firstDayOfMonth);
   const [endDate, setEndDate] = useState(today);
   const [report, setReport] = useState(null);
+  const [comparisons, setComparisons] = useState({});
   const [savedReports, setSavedReports] = useState([]);
   const [selectedReport, setSelectedReport] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -56,11 +58,32 @@ export default function Reports() {
   const [error, setError] = useState("");
   const reportRoot = useRef(null);
 
+  async function loadComparisons(endDateValue) {
+    const monthStart = startOfMonthDate(endDateValue);
+    const weekStart = startOfWeekDate(endDateValue);
+    const yearStart = startOfYearDate(endDateValue);
+    const ranges = {
+      DM: [monthStart, shiftDate(endDateValue, -1)],
+      WW: [shiftDate(weekStart, -7), shiftDate(weekStart, -1)],
+      MM: [startOfMonthDate(shiftDate(monthStart, -1)), shiftDate(monthStart, -1)],
+      MY: [yearStart, endDateValue],
+      YY: [startOfYearDate(shiftDate(yearStart, -1)), shiftDate(yearStart, -1)],
+    };
+    const entries = await Promise.all(Object.entries(ranges).map(async ([key, [start, end]]) => {
+      try { return [key, buildReportViewModel(await api.get(`/reports/summary?startDate=${start}&endDate=${end}`))]; }
+      catch { return [key, null]; }
+    }));
+    const result = Object.fromEntries(entries);
+    setComparisons(result);
+    return result;
+  }
+
   async function loadReport(event, persist = true) {
     event?.preventDefault(); setLoading(true); setError("");
     try {
       const summary = buildReportViewModel(await api.get(`/reports/summary?startDate=${startDate}&endDate=${endDate}`));
-      setReport(summary);
+      const loadedComparisons = await loadComparisons(endDate);
+      setReport({ ...summary, comparisons: loadedComparisons });
       if (persist) {
         const saved = await api.post("/reports", { startDate, endDate });
         setSavedReports((items) => [saved, ...items.filter((item) => item.id !== saved.id)]);
@@ -72,7 +95,7 @@ export default function Reports() {
   useEffect(() => { loadReport(undefined, false); api.get("/reports").then(setSavedReports).catch(() => undefined); }, []);
   const chartEmployees = useMemo(() => report?.employees?.slice(0, 8) || [], [report]);
 
-  function openSavedReport(saved) { setSelectedReport(saved); setReport(buildReportViewModel(saved)); }
+  async function openSavedReport(saved) { setSelectedReport(saved); const nextReport = buildReportViewModel(saved); const loadedComparisons = await loadComparisons(nextReport.endDate); setReport({ ...nextReport, comparisons: loadedComparisons }); }
   async function downloadSavedReport(saved) { try { const blob = await api.download(`/reports/${saved.id}/pdf`); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = `rapport-${saved.startDate || saved.periodDays}-${saved.endDate || "rapport"}.pdf`; anchor.click(); URL.revokeObjectURL(url); } catch (err) { setError(err.message || "Impossible de télécharger le rapport."); } }
   async function deleteSavedReport(saved) { if (!window.confirm("Supprimer définitivement ce rapport ?")) return; try { await api.delete(`/reports/${saved.id}`); setSavedReports((items) => items.filter((item) => item.id !== saved.id)); setSelectedReport(null); } catch (err) { setError(err.message || "Impossible de supprimer le rapport."); } }
   async function generateReportPDF() {

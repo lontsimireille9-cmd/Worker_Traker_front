@@ -29,10 +29,10 @@ export default function Layout() {
 
   return (
     <div className="flex h-[100dvh] w-full min-w-0 overflow-hidden bg-canvas">
-      <MobileHeader title={title} showBackButton={showBackButton} onBack={() => navigate(-1)} />
+      {!isMessagesRoute && <MobileHeader title={title} showBackButton={showBackButton} onBack={() => navigate(-1)} />}
       <div className="hidden lg:block"><SidebarNavigation onToggle={setIsSidebarCollapsed} /></div>
-      <main className={`min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-y-contain touch-pan-y pb-24 pt-16 transition-all duration-300 lg:h-[100dvh] lg:pb-8 lg:pt-8 ${isMessagesRoute ? "p-0 pt-14 lg:pt-0" : "px-4 sm:px-6 lg:px-8"} ${isSidebarCollapsed ? "lg:ml-[82px]" : "lg:ml-72"}`}>
-        <div className="min-w-0 max-w-full">{isMessagesRoute ? <Outlet /> : <Outlet />}</div>
+      <main className={`min-w-0 flex-1 overflow-x-hidden overscroll-y-contain transition-all duration-300 ${isMessagesRoute ? "h-[calc(100dvh-68px)] min-h-0 flex-1 overflow-hidden p-0 lg:h-[100dvh]" : "overflow-y-auto pb-24 pt-16 lg:h-[100dvh] lg:pb-8 lg:pt-8 px-4 sm:px-6 lg:px-8"} ${isSidebarCollapsed ? "lg:ml-[82px]" : "lg:ml-72"}`}>
+        <div className={`min-w-0 max-w-full ${isMessagesRoute ? "h-full" : ""}`}><Outlet /></div>
       </main>
       <MobileBottomNavigation />
     </div>

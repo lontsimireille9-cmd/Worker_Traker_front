@@ -12,6 +12,7 @@ import DashboardHoverLineChart from "../components/dashboard/HoverLineChart";
 const COMPARISONS = [
   { key: "DD", label: "D&D", title: "Jour actuel contre jour précédent" },
   { key: "DW", label: "D&W", title: "Jour actuel contre le même jour la semaine précédente" },
+  { key: "DM", label: "D&M", title: "Jour actuel contre le mois en cours" },
   { key: "WW", label: "W&W", title: "Semaine actuelle contre semaine précédente" },
   { key: "WM", label: "W&M", title: "Semaine actuelle contre mois actuel" },
   { key: "MM", label: "M&M", title: "Mois actuel contre mois précédent" },
@@ -36,6 +37,7 @@ function comparisonWindows(key) {
   const previousYear = new Date(year); previousYear.setFullYear(previousYear.getFullYear() - 1);
   const currentDay = { start: today, end: endOfCurrentDay() };
   if (key === "DW") return { current: currentDay, previous: { start: addDays(today, -7), end: addDays(today, -7) } };
+  if (key === "DM") return { current: currentDay, previous: { start: month, end: addDays(today, -1) } };
   if (key === "WW") return { current: { start: week, end: endOfCurrentDay() }, previous: { start: addDays(week, -7), end: addDays(week, -1) } };
   if (key === "WM") return { current: { start: week, end: endOfCurrentDay() }, previous: { start: month, end: endOfCurrentDay() } };
   if (key === "MM") return { current: { start: month, end: endOfCurrentDay() }, previous: { start: previousMonth, end: addDays(month, -1) } };
@@ -60,7 +62,7 @@ export default function Dashboard() {
   const { t } = useLanguage();
   const [tasks, setTasks] = useState([]);
   const [employees, setEmployees] = useState([]);
-  const [selectedKey, setSelectedKey] = useState("DD");
+  const [selectedKey, setSelectedKey] = useState("DM");
   const isEmployee = profile?.role === "EMPLOYEE";
   useEffect(() => { api.get("/tasks").then(setTasks).catch(() => setTasks([])); if (!isEmployee) api.get("/employees").then(setEmployees).catch(() => setEmployees([])); }, [isEmployee]);
   const selected = COMPARISONS.find((item) => item.key === selectedKey) || COMPARISONS[0];

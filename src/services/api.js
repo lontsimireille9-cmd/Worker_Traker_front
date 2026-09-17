@@ -8,6 +8,15 @@ const API_BASE_URL =
     : configuredApiUrl || productionApiUrl;
 const REQUEST_TIMEOUT_MS = 15000;
 
+function normalizeApiPayload(payload) {
+  if (payload === null || payload === undefined) return payload;
+  if (Array.isArray(payload)) return payload;
+  if (payload.data !== undefined) return normalizeApiPayload(payload.data);
+  if (Array.isArray(payload.tasks)) return payload.tasks;
+  if (Array.isArray(payload.items)) return payload.items;
+  return payload;
+}
+
 async function request(path, options = {}) {
   const user = auth.currentUser;
   const token = user ? await user.getIdToken() : null;
@@ -40,7 +49,8 @@ async function request(path, options = {}) {
     error.status = res.status;
     throw error;
   }
-  return data.data !== undefined ? data.data : data;
+
+  return normalizeApiPayload(data);
 }
 
 export const api = {
