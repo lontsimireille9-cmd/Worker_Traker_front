@@ -29,7 +29,7 @@ const Button = React.forwardRef(
     };
 
     return (
-      <Button
+      <button
         ref={ref}
         disabled={disabled || loading}
         onClick={onClick}
@@ -40,7 +40,7 @@ const Button = React.forwardRef(
           <span className="mr-2 h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />
         )}
         {children}
-      </Button>
+      </button>
     );
   }
 );

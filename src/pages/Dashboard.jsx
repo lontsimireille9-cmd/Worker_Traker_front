@@ -1,106 +1,83 @@
 import { useEffect, useMemo, useState } from "react";
-import { FaChartLine, FaCheckCircle, FaClock, FaTasks, FaUsers } from "react-icons/fa";
+import { FaArrowDown, FaArrowUp, FaChartLine, FaCheckCircle, FaClock, FaMinus, FaTasks, FaUsers } from "react-icons/fa";
 import { api } from "../services/api";
 import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import Card from "../components/ui/card";
-import Select from "../components/ui/select";
 import Title from "../components/ui/title";
-import Badge from "../components/ui/badge";
-import { formatTaskDate, getTaskDisplayDate, isTaskCompleted } from "../utils/getTaskDisplayStatus";
 import DashboardChartHeading from "../components/dashboard/ChartHeading";
 import DashboardStatChip from "../components/dashboard/StatChip";
-import DashboardInsight from "../components/dashboard/Insight";
-import DashboardDonutChart from "../components/dashboard/DonutChart";
 import DashboardHoverLineChart from "../components/dashboard/HoverLineChart";
-import DashboardRecentTasks from "../components/dashboard/RecentTasks";
 
-const PERIOD_KEYS = [{ value: "today", key: "today" }, { value: "yesterday", key: "yesterday" }, { value: "7", key: "last7Days" }, { value: "30", key: "lastDays" }, { value: "90", key: "lastMonths3" }, { value: "180", key: "lastMonths6" }, { value: "365", key: "lastMonths12" }];
-const COLORS = { primary: "#2f5d50", success: "#159570", warning: "#d58b28", grid: "#dce6e1" };
-function timestamp(value) { const date = new Date(value || 0); return Number.isNaN(date.getTime()) ? 0 : date.getTime(); }
-function shortDate(value, language = "fr") { return new Date(value).toLocaleDateString(language === "en" ? "en-US" : "fr-FR", { day: "2-digit", month: "short" }); }
-function fullDate(value, language = "fr") { return new Date(value).toLocaleDateString(language === "en" ? "en-US" : "fr-FR", { day: "2-digit", month: "long" }); }
-function getPeriodBounds(period) { const endDate = new Date(); endDate.setHours(23, 59, 59, 999); if (period === "today") { const today = new Date(endDate); today.setHours(0, 0, 0, 0); return { start: today.getTime(), end: endDate.getTime() }; } if (period === "yesterday") { const yesterday = new Date(endDate); yesterday.setDate(yesterday.getDate() - 1); yesterday.setHours(0, 0, 0, 0); return { start: yesterday.getTime(), end: endDate.getTime() - 86400000 }; } const days = Number(period); const startDate = new Date(endDate); startDate.setDate(startDate.getDate() - days + 1); return { start: startDate.getTime(), end: endDate.getTime() }; }
-function inPeriod(task, period) { const bounds = getPeriodBounds(period); const taskTime = timestamp(task.createdAt); return taskTime >= bounds.start && taskTime <= bounds.end; }
-function makeBuckets(tasks, period, employees = [], language = "fr") { const bounds = getPeriodBounds(period); const dayLength = 86400000; const firstTask = tasks.length ? Math.min(...tasks.map((task) => timestamp(task.createdAt))) : bounds.start; const firstDate = new Date(period === "today" ? bounds.start : Math.max(bounds.start, firstTask)); firstDate.setHours(0, 0, 0, 0); const startTime = firstDate.getTime(); const count = Math.max(1, Math.floor((bounds.end - startTime) / dayLength) + 1); return Array.from({ length: count }, (_, index) => { const start = startTime + index * dayLength; const bucketTasks = tasks.filter((task) => timestamp(task.createdAt) >= start && timestamp(task.createdAt) < start + dayLength); const completed = bucketTasks.filter(isTaskCompleted).length; const employeeRates = employees.map((employee) => { const own = bucketTasks.filter((task) => task.assigneeId === employee.uid); const done = own.filter(isTaskCompleted).length; return own.length ? done / own.length * 100 : 0; }); return { label: fullDate(start, language), date: fullDate(start, language), timestamp: start, total: bucketTasks.length, completed, rate: bucketTasks.length ? Math.round(completed / bucketTasks.length * 100) : 0, productivity: employees.length ? Math.round(employeeRates.reduce((sum, rate) => sum + rate, 0) / employees.length) : 0 }; }); }
-function makeTeamBuckets(tasks, team, days, language, granularity) { const memberIds = new Set(team.memberIds || []); return makeBuckets(tasks.filter((task) => task.assignmentScope === "TEAM" && task.teamId === team.id && memberIds.has(task.assigneeId)), days, team.memberIds?.map((uid) => ({ uid })) || [], language, granularity); }
+const COMPARISONS = [
+  { key: "DD", label: "D&D", title: "Jour actuel contre jour précédent" },
+  { key: "DW", label: "D&W", title: "Jour actuel contre le même jour la semaine précédente" },
+  { key: "WW", label: "W&W", title: "Semaine actuelle contre semaine précédente" },
+  { key: "WM", label: "W&M", title: "Semaine actuelle contre mois actuel" },
+  { key: "MM", label: "M&M", title: "Mois actuel contre mois précédent" },
+  { key: "MY", label: "M&Y", title: "Mois actuel contre année actuelle" },
+  { key: "YY", label: "Y&Y", title: "Année actuelle contre année précédente" },
+];
+
+const COLORS = { success: "#10B981", warning: "#F59E0B" };
+
+function startOfDay(value = new Date()) { const date = new Date(value); date.setHours(0, 0, 0, 0); return date; }
+function startOfWeek(value = new Date()) { const date = startOfDay(value); const day = date.getDay() || 7; date.setDate(date.getDate() - day + 1); return date; }
+function startOfMonth(value = new Date()) { const date = startOfDay(value); date.setDate(1); return date; }
+function startOfYear(value = new Date()) { const date = startOfDay(value); date.setMonth(0, 1); return date; }
+function addDays(value, days) { const date = new Date(value); date.setDate(date.getDate() + days); return date; }
+function endOfCurrentDay() { const date = new Date(); date.setHours(23, 59, 59, 999); return date; }
+function comparisonWindows(key) {
+  const today = startOfDay();
+  const week = startOfWeek();
+  const month = startOfMonth();
+  const year = startOfYear();
+  const previousMonth = new Date(month); previousMonth.setMonth(previousMonth.getMonth() - 1);
+  const previousYear = new Date(year); previousYear.setFullYear(previousYear.getFullYear() - 1);
+  const currentDay = { start: today, end: endOfCurrentDay() };
+  if (key === "DW") return { current: currentDay, previous: { start: addDays(today, -7), end: addDays(today, -7) } };
+  if (key === "WW") return { current: { start: week, end: endOfCurrentDay() }, previous: { start: addDays(week, -7), end: addDays(week, -1) } };
+  if (key === "WM") return { current: { start: week, end: endOfCurrentDay() }, previous: { start: month, end: endOfCurrentDay() } };
+  if (key === "MM") return { current: { start: month, end: endOfCurrentDay() }, previous: { start: previousMonth, end: addDays(month, -1) } };
+  if (key === "MY") return { current: { start: month, end: endOfCurrentDay() }, previous: { start: year, end: endOfCurrentDay() } };
+  if (key === "YY") return { current: { start: year, end: endOfCurrentDay() }, previous: { start: previousYear, end: addDays(year, -1) } };
+  return { current: currentDay, previous: { start: addDays(today, -1), end: addDays(today, -1) } };
+}
+function inRange(task, range) { const time = new Date(task.createdAt || 0).getTime(); return time >= range.start.getTime() && time <= range.end.getTime(); }
+function isCompleted(task) { return task.status === "COMPLETED" || task.completed === true; }
+function summarize(tasks, range) { const filtered = tasks.filter((task) => inRange(task, range)); const completed = filtered.filter(isCompleted).length; return { total: filtered.length, completed, pending: filtered.length - completed, rate: filtered.length ? Math.round(completed / filtered.length * 100) : 0 }; }
+function trend(current, previous) { const difference = current - previous; return { tone: difference > 0 ? "up" : difference < 0 ? "down" : "stable", icon: difference > 0 ? <FaArrowUp /> : difference < 0 ? <FaArrowDown /> : <FaMinus /> }; }
+function makeIndicators(current, previous, employeePerformance) { return [
+  { key: "tasks", label: "Tâches", value: current.total, trend: trend(current.total, previous.total).icon, tone: trend(current.total, previous.total).tone },
+  { key: "completed", label: "Tâches terminées", value: current.completed, trend: trend(current.completed, previous.completed).icon, tone: trend(current.completed, previous.completed).tone },
+  { key: "rate", label: "Taux de réalisation", value: `${current.rate}%`, trend: trend(current.rate, previous.rate).icon, tone: trend(current.rate, previous.rate).tone },
+  ...employeePerformance.map((employee) => ({ key: employee.uid, label: employee.name || employee.email, value: `${employee.current}%`, trend: trend(employee.current, employee.previous).icon, tone: trend(employee.current, employee.previous).tone })),
+]; }
+function ComparisonSelector({ active, onChange }) { return <div className="flex w-full gap-1 overflow-x-auto rounded-xl border border-line bg-white p-1 sm:w-auto">{COMPARISONS.map((item) => <button key={item.key} type="button" onClick={() => onChange(item.key)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold transition ${active === item.key ? "bg-primary text-white" : "text-muted hover:bg-surface-2 hover:text-ink"}`}>{item.label}</button>)}</div>; }
 
 export default function Dashboard() {
   const { profile } = useAuth();
-  const { t, language } = useLanguage();
-  const [tasks, setTasks] = useState([]); const [employees, setEmployees] = useState([]); const [teams, setTeams] = useState([]); const [view, setView] = useState("30-week");
-  const [period, granularity] = view.split("-");
+  const { t } = useLanguage();
+  const [tasks, setTasks] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [selectedKey, setSelectedKey] = useState("DD");
   const isEmployee = profile?.role === "EMPLOYEE";
-  useEffect(() => { api.get("/tasks").then(setTasks).catch(() => setTasks([])); if (!isEmployee) { api.get("/employees").then(setEmployees).catch(() => setEmployees([])); api.get("/teams").then(setTeams).catch(() => setTeams([])); } }, [isEmployee]);
-  const periodTasks = useMemo(() => tasks.filter((task) => inPeriod(task, period)), [tasks, period]);
-  const buckets = useMemo(() => makeBuckets(periodTasks, period, isEmployee ? [{ uid: profile?.uid }] : employees, language, granularity), [periodTasks, period, employees, isEmployee, profile?.uid, language, granularity]);
-  const completed = periodTasks.filter(isTaskCompleted).length; const pending = periodTasks.length - completed; const completionRate = periodTasks.length ? Math.round(completed / periodTasks.length * 100) : 0;
-  const overdue = periodTasks.filter((task) => !isTaskCompleted(task) && timestamp(task.createdAt) < Date.now() - 86400000).length;
-  const employeePerformance = useMemo(() => employees.map((employee) => { const own = periodTasks.filter((task) => task.assigneeId === employee.uid); const done = own.filter(isTaskCompleted).length; return { ...employee, total: own.length, done, rate: own.length ? Math.round(done / own.length * 100) : 0 }; }).sort((a, b) => b.rate - a.rate || b.done - a.done), [employees, periodTasks]);
+  useEffect(() => { api.get("/tasks").then(setTasks).catch(() => setTasks([])); if (!isEmployee) api.get("/employees").then(setEmployees).catch(() => setEmployees([])); }, [isEmployee]);
+  const selected = COMPARISONS.find((item) => item.key === selectedKey) || COMPARISONS[0];
+  const windows = comparisonWindows(selected.key);
+  const current = useMemo(() => summarize(tasks, windows.current), [tasks, selectedKey]);
+  const previous = useMemo(() => summarize(tasks, windows.previous), [tasks, selectedKey]);
+  const employeePerformance = useMemo(() => employees.map((employee) => {
+    const rate = (items) => items.length ? Math.round(items.filter(isCompleted).length / items.length * 100) : 0;
+    return { ...employee, current: rate(tasks.filter((task) => inRange(task, windows.current) && task.assigneeId === employee.uid)), previous: rate(tasks.filter((task) => inRange(task, windows.previous) && task.assigneeId === employee.uid)) };
+  }), [employees, tasks, selectedKey]);
+  const indicators = makeIndicators(current, previous, isEmployee ? [] : employeePerformance);
+  const chartData = [{ label: "Avant", total: previous.total, completed: previous.completed }, { label: "Actuel", total: current.total, completed: current.completed }];
 
-  const periods = PERIOD_KEYS.map(({ value, key }) => ({ value: `${value}-week`, label: t(key) }));
-  return <div className="mx-auto max-w-7xl">
-    <header className="mb-7 flex flex-wrap items-end justify-between gap-4"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">{t("performanceAnalysis")}</p><Title as="h1" variant="page" className="mt-1 mb-1">{t("hello")} {profile?.name?.split(" ")[0] || t("you")}</Title><p className="text-sm text-muted">{isEmployee ? t("followActivity") : t("companyActivity")}</p></div><div className="w-full sm:w-56"><Select value={view} onChange={(event) => setView(event.target.value)} options={periods} /></div></header>
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><DashboardStatChip icon={<FaTasks />} label={t("tasks")} value={periodTasks.length} color="primary" /><DashboardStatChip icon={<FaCheckCircle />} label={t("completed")} value={completed} color="success" /><DashboardStatChip icon={<FaClock />} label={t("toProcess")} value={pending} color="warning" /><DashboardStatChip icon={<FaChartLine />} label={t("overallRate")} value={`${completionRate}%`} color="blue" /></div>
-    <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]"><Card><DashboardChartHeading icon={<FaChartLine />} title={isEmployee ? t("myActivity") : t("activityEvolution")} text={t("createdVsCompleted")} /><DashboardHoverLineChart data={buckets} showCompleted t={t} /></Card><Card><DashboardChartHeading icon={<FaCheckCircle />} title={t("statusBreakdown")} text={t("periodSummary")} /><DashboardDonutChart completed={completed} pending={pending} t={t} /></Card></div>
-    <div className="mt-6 grid gap-6 xl:grid-cols-2"><Card><DashboardChartHeading icon={<FaChartLine />} title={isEmployee ? t("averageProductivity") : t("completionRate")} text={isEmployee ? t("employeeRatio") : t("completionPercent")} /><DashboardHoverLineChart data={buckets} valueKey={isEmployee ? "productivity" : "rate"} percent t={t} /></Card>{!isEmployee ? <Card><DashboardChartHeading icon={<FaChartLine />} title={t("averageProductivity")} text={t("employeeAverage")} /><DashboardHoverLineChart data={buckets} valueKey="productivity" percent t={t} /></Card> : <DashboardRecentTasks tasks={periodTasks.slice(0, 6)} t={t} />}</div>
-    {!isEmployee && teams.length > 0 && <Card className="mt-6"><DashboardChartHeading icon={<FaUsers />} title={t("teamProductivity")} text={t("teamTasksOnly")} /><div className="grid gap-6 lg:grid-cols-2">{teams.slice(0, 4).map((team) => <div key={team.id}><p className="mb-2 text-sm font-semibold text-ink">{team.name}</p><DashboardHoverLineChart data={makeTeamBuckets(periodTasks, team, period, language, granularity)} valueKey="rate" percent t={t} /></div>)}</div></Card>}
-    {!isEmployee && <div className="mt-6 grid gap-4 sm:grid-cols-3"><DashboardInsight label={t("activeEmployees")} value={employees.filter((employee) => employee.status !== "DISABLED").length} icon={<FaUsers />} /><DashboardInsight label={t("overdueTasks")} value={overdue} icon={<FaClock />} /><DashboardInsight label={t("averageProductivity")} value={employees.length ? `${Math.round(employeePerformance.reduce((sum, item) => sum + item.rate, 0) / employees.length)}%` : "0%"} icon={<FaChartLine />} /></div>}
-  </div>;
-}
-function ChartHeading({ icon, title, text }) { return <div className="mb-5 flex items-start gap-3"><span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">{icon}</span><div><h2 className="font-semibold text-ink">{title}</h2><p className="mt-1 text-xs text-muted">{text}</p></div></div>; }
-function StatChip({ icon, label, value, color }) { const styles = { primary: "bg-primary/10 text-primary", success: "bg-emerald-500/10 text-emerald-600", warning: "bg-amber-500/10 text-amber-600", blue: "bg-sky-500/10 text-sky-600" }; return <Card className="flex items-center gap-3"><span className={`flex h-10 w-10 items-center justify-center rounded-xl ${styles[color]}`}>{icon}</span><div><p className="text-xs text-muted">{label}</p><p className="text-2xl font-bold text-ink">{value}</p></div></Card>; }
-function Insight({ icon, label, value }) { return <Card className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-2 text-primary">{icon}</span><div><p className="text-xs text-muted">{label}</p><p className="text-xl font-bold text-ink">{value}</p></div></Card>; }
-function LineChart({ data, valueKey = "total", percent = false, showCompleted = false, t }) { const width = 700; const height = 250; const pad = { left: 35, right: 12, top: 15, bottom: 35 }; const max = percent ? 100 : Math.max(...data.map((item) => Math.max(item[valueKey], showCompleted ? item.completed : 0)), 1); const points = data.map((item, index) => { const x = pad.left + index * ((width - pad.left - pad.right) / Math.max(data.length - 1, 1)); const y = pad.top + (height - pad.top - pad.bottom) * (1 - item[valueKey] / max); return { ...item, x, y }; }); const completedPoints = data.map((item, index) => { const x = pad.left + index * ((width - pad.left - pad.right) / Math.max(data.length - 1, 1)); const y = pad.top + (height - pad.top - pad.bottom) * (1 - item.completed / max); return { ...item, x, y }; }); const line = points.map((point) => `${point.x},${point.y}`).join(" "); const completedLine = completedPoints.map((point) => `${point.x},${point.y}`).join(" "); const area = `${pad.left},${height - pad.bottom} ${line} ${points.at(-1)?.x || pad.left},${height - pad.bottom}`; return <div className="w-full overflow-hidden"><div className="mb-3 flex flex-wrap gap-4 text-xs text-muted"><Legend color={COLORS.primary} label={percent ? t("averageProductivity") : t("created")} value="" />{showCompleted && <Legend color={COLORS.success} label={t("completedPlural")} value="" />}</div><svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full" role="img" aria-label={t("statisticalChart")}><defs><linearGradient id={`area-${valueKey}-${showCompleted}`} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor={COLORS.primary} stopOpacity=".25" /><stop offset="1" stopColor={COLORS.primary} stopOpacity="0" /></linearGradient></defs>{[0, .25, .5, .75, 1].map((step) => <line key={step} x1={pad.left} x2={width - pad.right} y1={pad.top + step * (height - pad.top - pad.bottom)} y2={pad.top + step * (height - pad.top - pad.bottom)} stroke={COLORS.grid} strokeDasharray="3 5" />)}<polygon points={area} fill={`url(#area-${valueKey}-${showCompleted})`} /><polyline points={line} fill="none" stroke={COLORS.primary} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />{showCompleted && <polyline points={completedLine} fill="none" stroke={COLORS.success} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}{points.map((point) => <g key={point.label}><circle cx={point.x} cy={point.y} r="4" fill="white" stroke={COLORS.primary} strokeWidth="2"><title>{`${point.label}: ${point[valueKey]}${percent ? "%" : ""}`}</title></circle>{showCompleted && <circle cx={point.x} cy={completedPoints.find((item) => item.label === point.label)?.y} r="3" fill={COLORS.success}><title>{`${point.label}: ${point.completed}`}</title></circle>}<text x={point.x} y={height - 12} textAnchor="middle" className="fill-muted text-[11px]">{point.label}</text></g>)}</svg></div>; }
-function DonutChart({ completed, pending, t }) { const total = completed + pending; const radius = 52; const circumference = 2 * Math.PI * radius; const doneLength = total ? completed / total * circumference : 0; return <div className="flex flex-col items-center gap-5 sm:flex-row sm:justify-center"><div className="relative h-40 w-40"><svg viewBox="0 0 140 140" className="h-full w-full -rotate-90"><circle cx="70" cy="70" r={radius} fill="none" stroke="#e9efec" strokeWidth="18" /><circle cx="70" cy="70" r={radius} fill="none" stroke={COLORS.success} strokeWidth="18" strokeDasharray={`${doneLength} ${circumference}`} strokeLinecap="round" /></svg><div className="absolute inset-0 flex flex-col items-center justify-center"><strong className="text-2xl text-ink">{total ? Math.round(completed / total * 100) : 0}%</strong><span className="text-[11px] text-muted">{t("realization")}</span></div></div><div className="space-y-3 text-sm"><Legend color={COLORS.success} label={t("completedPlural")} value={completed} /><Legend color={COLORS.warning} label={t("remaining")} value={pending} /></div></div>; }
-function Legend({ color, label, value }) { return <div className="flex items-center gap-2"><span className="h-2.5 w-2.5 rounded-full" style={{ background: color }} /><span className="text-muted">{label}</span><strong className="ml-auto text-ink">{value}</strong></div>; }
-function BarChart({ data }) { return <div className="space-y-4">{data.map((item) => <div key={item.uid}><div className="mb-1 flex justify-between gap-3 text-xs"><span className="max-w-[70%] truncate font-medium text-ink">{item.name || item.email}</span><span className="font-semibold text-primary">{item.rate}%</span></div><div className="h-2.5 overflow-hidden rounded-full bg-surface-2"><div className="h-full rounded-full bg-primary" style={{ width: `${item.rate}%` }} /></div><p className="mt-1 text-[11px] text-muted">{item.done}/{item.total} taches realisees</p></div>)}{data.length === 0 && <EmptyChart text="Pas encore de donnees par employe." />}</div>; }
-function RecentTasks({ tasks, t }) { return <Card><DashboardChartHeading icon={<FaTasks />} title={t("recentActivity")} text={t("recentTasksDescription")} /><div className="space-y-2">{tasks.map((task) => <div key={task.id} className="flex items-center justify-between gap-3 rounded-xl bg-surface-2 px-3 py-3"><div className="min-w-0"><p className="truncate text-sm font-medium text-ink">{task.title}</p><p className="mt-1 text-xs text-muted">{formatTaskDate(getTaskDisplayDate(task))}</p></div><Badge tone={isTaskCompleted(task) ? "success" : "warning"}>{isTaskCompleted(task) ? t("done") : t("toProcess")}</Badge></div>)}{tasks.length === 0 && <EmptyChart text={t("noActivity")} />}</div></Card>; }
-function EmptyChart({ text }) { return <p className="py-8 text-center text-sm text-muted">{text}</p>; }
-
-function HoverLineChart({ data, valueKey = "total", percent = false, showCompleted = false, t }) {
-  const [activeIndex, setActiveIndex] = useState(null);
-  const width = 700;
-  const height = 250;
-  const pad = { left: 35, right: 12, top: 15, bottom: 35 };
-  const max = percent ? 100 : Math.max(...data.map((item) => Math.max(item[valueKey], showCompleted ? item.completed : 0)), 1);
-  const points = data.map((item, index) => {
-    const x = pad.left + index * ((width - pad.left - pad.right) / Math.max(data.length - 1, 1));
-    const y = pad.top + (height - pad.top - pad.bottom) * (1 - item[valueKey] / max);
-    return { ...item, x, y };
-  });
-  const completedPoints = data.map((item, index) => ({
-    ...item,
-    x: pad.left + index * ((width - pad.left - pad.right) / Math.max(data.length - 1, 1)),
-    y: pad.top + (height - pad.top - pad.bottom) * (1 - item.completed / max),
-  }));
-  const line = points.map((point) => `${point.x},${point.y}`).join(" ");
-  const completedLine = completedPoints.map((point) => `${point.x},${point.y}`).join(" ");
-  const area = `${pad.left},${height - pad.bottom} ${line} ${points.at(-1)?.x || pad.left},${height - pad.bottom}`;
-  const activePoint = activeIndex === null ? null : points[activeIndex];
-  const valueLabel = (value) => `${value}${percent ? "%" : ""}`;
-
-  return <div className="w-full overflow-visible">
-    <div className="mb-3 flex flex-wrap gap-4 text-xs text-muted"><Legend color={COLORS.primary} label={percent ? t("averageProductivity") : t("created")} value="" />{showCompleted && <Legend color={COLORS.success} label={t("completedPlural")} value="" />}</div>
-    <div className="relative">
-      {activePoint && <div className="pointer-events-none absolute z-10 -translate-x-1/2 -translate-y-full rounded-lg border border-line bg-surface px-3 py-2 text-xs shadow-lg" style={{ left: `${activePoint.x / width * 100}%`, top: `${activePoint.y / height * 100}%` }}>
-        <p className="font-semibold text-ink">{activePoint.date}</p>
-        <p className="text-primary">{t("value")}: {valueLabel(activePoint[valueKey])}</p>
-        {showCompleted && <p className="text-emerald-600">{t("completedPlural")}: {valueLabel(activePoint.completed)}</p>}
-      </div>}
-      <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full" role="img" aria-label={t("statisticalChart")} onMouseLeave={() => setActiveIndex(null)}>
-        <defs><linearGradient id={`hover-area-${valueKey}-${showCompleted}`} x1="0" x2="0" y1="0" y2="1"><stop offset="0" stopColor={COLORS.primary} stopOpacity=".25" /><stop offset="1" stopColor={COLORS.primary} stopOpacity="0" /></linearGradient></defs>
-        {[0, .25, .5, .75, 1].map((step) => <line key={step} x1={pad.left} x2={width - pad.right} y1={pad.top + step * (height - pad.top - pad.bottom)} y2={pad.top + step * (height - pad.top - pad.bottom)} stroke={COLORS.grid} strokeDasharray="3 5" />)}
-        <polygon points={area} fill={`url(#hover-area-${valueKey}-${showCompleted})`} />
-        <polyline points={line} fill="none" stroke={COLORS.primary} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        {showCompleted && <polyline points={completedLine} fill="none" stroke={COLORS.success} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />}
-        {points.map((point, index) => <g key={point.label} onMouseEnter={() => setActiveIndex(index)}>
-          <circle cx={point.x} cy={point.y} r={activeIndex === index ? "6" : "4"} fill="white" stroke={COLORS.primary} strokeWidth="2" />
-          {showCompleted && <circle cx={completedPoints[index].x} cy={completedPoints[index].y} r={activeIndex === index ? "5" : "3"} fill={COLORS.success} />}
-          <text x={point.x} y={height - 12} textAnchor="middle" className="fill-muted text-[11px]">{point.label}</text>
-        </g>)}
-        {points.map((point, index) => <rect key={`hit-${point.label}`} x={index === 0 ? 0 : (point.x + points[index - 1].x) / 2} y="0" width={index === 0 ? (points[1]?.x || width) / 2 : index === points.length - 1 ? width - (points[index - 1].x + point.x) / 2 : (points[index + 1].x - points[index - 1].x) / 2} height={height} fill="transparent" onMouseEnter={() => setActiveIndex(index)} />)}
-      </svg>
-    </div>
+  return <div className="mx-auto max-w-7xl pb-8">
+    <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Performance</p><Title as="h1" variant="page" className="mt-1 mb-1">{t("hello")} {profile?.name?.split(" ")[0] || t("you")}</Title><p className="text-sm text-muted">{selected.title}</p></div><ComparisonSelector active={selected.key} onChange={setSelectedKey} /></header>
+    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><DashboardStatChip icon={<FaTasks />} label="Tâches" value={current.total} color="primary" /><DashboardStatChip icon={<FaCheckCircle />} label="Terminées" value={current.completed} color="success" /><DashboardStatChip icon={<FaClock />} label="À traiter" value={current.pending} color="warning" /><DashboardStatChip icon={<FaChartLine />} label="Réalisation" value={`${current.rate}%`} color="blue" /></div>
+    <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]"><Card className="bg-white"><DashboardChartHeading icon={<FaChartLine />} title={selected.label} text={selected.title} /><DashboardHoverLineChart data={chartData} valueKey="total" showCompleted t={t} indicators={indicators} /></Card><Card className="bg-white"><DashboardChartHeading icon={<FaCheckCircle />} title="Évolution de la réalisation" text="Comparaison de la période active" /><div className="flex h-48 items-center justify-center"><div className="relative flex h-36 w-36 items-center justify-center rounded-full" style={{ background: `conic-gradient(${COLORS.success} ${current.rate}%, ${COLORS.warning} 0)` }}><div className="flex h-24 w-24 items-center justify-center rounded-full bg-white text-2xl font-bold text-ink">{current.rate}%</div></div></div><div className="flex justify-center gap-5 text-xs text-muted"><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />Terminées</span><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-500" />À traiter</span></div></Card></div>
+    {!isEmployee && <Card className="mt-6 bg-white"><DashboardChartHeading icon={<FaUsers />} title="Performance des employés" text="Évolution par rapport à la période précédente" /><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{employeePerformance.map((employee) => { const item = trend(employee.current, employee.previous); return <div key={employee.uid} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-white p-3"><div className="min-w-0"><p className="truncate text-sm font-semibold text-ink">{employee.name || employee.email}</p><p className="text-xs text-muted">{employee.previous}% avant → {employee.current}% actuel</p></div><span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${item.tone === "up" ? "bg-emerald-50 text-emerald-600" : item.tone === "down" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"}`}>{item.icon}</span></div>; })}</div></Card>}
   </div>;
 }

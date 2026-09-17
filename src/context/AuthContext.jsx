@@ -44,7 +44,15 @@ export function AuthProvider({ children }) {
     setLoading(false);
     return credential;
   }
-  const logout = () => signOut(auth);
+  async function logout() {
+    try {
+      await signOut(auth);
+    } finally {
+      setFirebaseUser(null);
+      setProfile(null);
+      setLoading(false);
+    }
+  }
 
   async function refreshProfile() {
     const me = await api.get("/auth/me");

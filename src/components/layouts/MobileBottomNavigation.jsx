@@ -46,8 +46,9 @@ export default function MobileBottomNavigation() {
       {moreOpen && (
         <Button
           type="Button"
+          variant="ghost"
           aria-label="Fermer le menu secondaire"
-          className="fixed inset-0 z-40 bg-ink/20 backdrop-blur-[1px] lg:hidden"
+          className="fixed inset-0 z-40 bg-ink/30 backdrop-blur-md lg:hidden"
           onClick={() => setMoreOpen(false)}
         />
       )}
@@ -93,6 +94,7 @@ export default function MobileBottomNavigation() {
           ))}
           <Button
             type="Button"
+            variant="ghost"
             onClick={handleMoreClick}
             aria-expanded={moreOpen}
             aria-label={moreOpen ? "Fermer les accès rapides" : "Ouvrir les accès rapides"}

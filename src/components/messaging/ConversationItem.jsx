@@ -16,7 +16,7 @@ function formatTime(value) {
 
 export default function ConversationItem({ conversation, active, onClick }) {
   return (
-    <Button type="Button" onClick={onClick} className={`flex w-full items-center gap-3 border-b border-line border-l-2 px-3 py-3 text-left transition hover:bg-surface-2 ${active ? 'border-l-primary bg-primary/5' : 'border-l-transparent'}`}>
+    <Button type="Button" variant="ghost" onClick={onClick} className={`flex w-full items-center gap-3 border-b border-line border-l-2 bg-white px-3 py-3 text-left text-ink transition hover:bg-surface-2 ${active ? 'border-l-primary bg-primary/5' : 'border-l-transparent'}`}>
       <div className="relative flex h-11 w-11 flex-shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 font-semibold text-primary">
         {conversation.avatar ? <img src={conversation.avatar} alt="" className="h-full w-full object-cover" /> : conversation.type === 'group' ? <FaUsers size={15} /> : <span>{initials(conversation.name)}</span>}
       </div>

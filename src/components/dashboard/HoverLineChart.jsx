@@ -10,7 +10,7 @@ function formatDetailDate(value, language = "fr") {
   return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString(language === "en" ? "en-US" : "fr-FR", { weekday: "short", day: "2-digit", month: "short", year: "numeric" });
 }
 
-function ChartSvg({ data, valueKey, percent, showCompleted, detailed = false, language = "fr" }) {
+function ChartSvg({ data, valueKey, percent, showCompleted, detailed = false }) {
   const width = 760;
   const height = detailed ? 330 : 250;
   const pad = { left: 42, right: 14, top: 18, bottom: detailed ? 48 : 16 };
@@ -42,16 +42,13 @@ function ChartSvg({ data, valueKey, percent, showCompleted, detailed = false, la
         <g key={`${point.label}-${index}`}>
           <circle cx={point.x} cy={point.y} r="5" fill="white" stroke={COLORS.primary} strokeWidth="2" />
           {showCompleted && <circle cx={completedPoints[index].x} cy={completedPoints[index].y} r="4" fill={COLORS.success} />}
-          <text x={point.x} y={height - 20} textAnchor="middle" className="fill-muted text-[11px]">
-            {new Date(point.timestamp || point.date || point.label).toLocaleDateString(language === "en" ? "en-US" : "fr-FR", { day: "2-digit", month: "short" })}
-          </text>
         </g>
       ))}
     </svg>
   );
 }
 
-export default function HoverLineChart({ data, valueKey = "total", percent = false, showCompleted = false, t, language = "fr" }) {
+export default function HoverLineChart({ data, valueKey = "total", percent = false, showCompleted = false, t, indicators = [] }) {
   const [expanded, setExpanded] = useState(false);
   const safeData = useMemo(() => data || [], [data]);
   const valueLabel = (value) => `${value}${percent ? "%" : ""}`;
@@ -64,13 +61,13 @@ export default function HoverLineChart({ data, valueKey = "total", percent = fal
         <Legend color={COLORS.primary} label={percent ? t("averageProductivity") : t("created")} value="" />
         {showCompleted && <Legend color={COLORS.success} label={t("completedPlural")} value="" />}
       </div>
-<ChartSvg data={safeData} valueKey={valueKey} percent={percent} showCompleted={showCompleted} language={language} />
+<ChartSvg data={safeData} valueKey={valueKey} percent={percent} showCompleted={showCompleted} />
     </div>
   );
 
   return (
     <>
-      <Button type="Button" onClick={() => setExpanded(true)} className="group relative block w-full cursor-zoom-in text-left" aria-label="Ouvrir le graphique détaillé">
+      <Button type="Button" variant="ghost" onClick={() => setExpanded(true)} className="group relative block w-full cursor-zoom-in bg-white text-left hover:bg-white" aria-label="Ouvrir le graphique détaillé">
         {compactChart}
         <span className="pointer-events-none absolute right-2 top-1 flex h-8 w-8 items-center justify-center rounded-lg bg-surface/90 text-primary opacity-70 shadow-sm transition group-hover:opacity-100"><FaExpand size={13} /></span>
       </Button>
@@ -82,19 +79,19 @@ export default function HoverLineChart({ data, valueKey = "total", percent = fal
                 <h2 className="text-lg font-semibold text-ink">{percent ? t("averageProductivity") : t("activityEvolution")}</h2>
                 <p className="mt-1 text-xs text-muted">Vue détaillée avec les valeurs de la période.</p>
               </div>
-              <Button type="Button" onClick={() => setExpanded(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-ink" aria-label="Fermer"><FaTimes /></Button>
+              <Button type="Button" variant="ghost" onClick={() => setExpanded(false)} className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted hover:bg-surface-2 hover:text-ink" aria-label="Fermer"><FaTimes /></Button>
             </div>
             <div className="mb-4 flex flex-wrap gap-4 text-xs text-muted">
               <Legend color={COLORS.primary} label={percent ? t("averageProductivity") : t("created")} value="" />
               {showCompleted && <Legend color={COLORS.success} label={t("completedPlural")} value="" />}
             </div>
-            <ChartSvg data={safeData} valueKey={valueKey} percent={percent} showCompleted={showCompleted} detailed language={language} />
-            <div className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {safeData.map((item, index) => (
-                <div key={`${item.label}-${index}`} className="rounded-xl border border-line bg-canvas p-3">
-                  <p className="text-xs font-semibold text-ink">{formatDetailDate(item.timestamp || item.date || item.label, language)}</p>
-                  <p className="mt-1 text-xs text-primary">{t("value")}: {valueLabel(item[valueKey])}</p>
-                  {showCompleted && <p className="text-xs text-emerald-600">{t("completedPlural")}: {item.completed}</p>}
+            <ChartSvg data={safeData} valueKey={valueKey} percent={percent} showCompleted={showCompleted} detailed />
+            <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {indicators.map((indicator) => (
+                <div key={indicator.key} className="rounded-xl border border-line bg-white p-4">
+                  <p className="text-xs font-semibold text-muted">{indicator.label}</p>
+                  <p className="mt-1 text-2xl font-bold text-ink">{indicator.value}</p>
+                  <p className={`mt-1 text-xs font-semibold ${indicator.tone === "up" ? "text-emerald-600" : indicator.tone === "down" ? "text-red-600" : "text-amber-600"}`}>{indicator.trend}</p>
                 </div>
               ))}
             </div>

@@ -59,6 +59,7 @@ export default function SidebarNavigation({ onToggle }) {
         <Link
           to={item.path}
           title={isCollapsed ? item.label : undefined}
+          variant="ghost"
           className={[
             "group flex min-h-11 items-center rounded-xl px-3 py-2.5 transition-colors",
             isCollapsed ? "justify-center" : "gap-3",
