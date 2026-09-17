@@ -1,8 +1,11 @@
 import { auth } from "../firebase/config";
 
+const configuredApiUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
+const productionApiUrl = "https://worker-traker-back.onrender.com";
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL?.replace(/\/$/, "") ||
-  "https://worker-traker-back.onrender.com";
+  import.meta.env.PROD && configuredApiUrl?.match(/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/)
+    ? productionApiUrl
+    : configuredApiUrl || productionApiUrl;
 const REQUEST_TIMEOUT_MS = 15000;
 
 async function request(path, options = {}) {
