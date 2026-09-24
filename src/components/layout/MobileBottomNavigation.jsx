@@ -23,12 +23,14 @@ export default function MobileBottomNavigation() {
   const { t } = useLanguage();
   const [moreOpen, setMoreOpen] = useState(false);
   const isEmployee = profile?.role === "EMPLOYEE";
-  const isManager = ["ADMIN", "MANAGER", "SUPER_ADMIN"].includes(String(profile?.role || "").toUpperCase());
+  const isManager = ["ADMIN", "MANAGER", "SUPER_ADMIN"].includes(profile?.role);
+  const canManageEmployees = ["ADMIN", "SUPER_ADMIN"].includes(profile?.role);
   const essentialTabs = [{ path: "/", label: t("home"), icon: <FaHome /> }, { path: "/taches", label: t("tasks"), icon: <FaTasks /> }, { path: "/messages", label: t("messages"), icon: <FaComments /> }, { path: "/profil", label: t("profile"), icon: <FaUserCog /> }];
   const secondaryTabs = [
     ...(isEmployee ? [{ path: "/historique", label: t("history"), icon: <FaHistory /> }] : []),
-    { path: "/equipes", label: t("teams"), icon: <FaLayerGroup /> },
-    ...([ "ADMIN", "SUPER_ADMIN" ].includes(String(profile?.role || "").toUpperCase()) ? [{ path: "/employes", label: t("employees"), icon: <FaUsers /> }] : []),
+    { path: "/equipe", label: "Équipes", icon: <FaLayerGroup /> },
+    ...(isManager ? [{ path: "/equipes", label: "Gestion équipes", icon: <FaLayerGroup /> }] : []),
+    ...(canManageEmployees ? [{ path: "/employes", label: t("employees"), icon: <FaUsers /> }] : []),
     { path: "/parametres", label: t("settings"), icon: <FaCog /> },
     ...(profile?.role === "SUPER_ADMIN" ? [{ path: "/rapports", label: t("reports"), icon: <FaChartBar /> }] : []),
   ];

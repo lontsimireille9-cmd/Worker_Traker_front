@@ -8,12 +8,13 @@ import Select from "../components/ui/select";
 import Title from "../components/ui/title";
 import Alert from "../components/ui/alert";
 import Badge from "../components/ui/badge";
+import { DEPARTMENTS } from "../constants/departments";
 
 export default function Employees() {
   const { t } = useLanguage();
   const [employees, setEmployees] = useState([]);
   const [teams, setTeams] = useState([]);
-  const [form, setForm] = useState({ matricule: "", name: "", code: "", role: "EMPLOYEE", department: "", position: "", teamId: "" });
+  const [form, setForm] = useState({ matricule: "", name: "", code: "", role: "EMPLOYEE", department: "PROJECT", position: "", teamId: "" });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
@@ -34,7 +35,7 @@ export default function Employees() {
     try {
       await api.post("/employees", form);
       setSuccess(`Employé créé — matricule ${form.matricule}, code ${form.code}`);
-      setForm({ matricule: "", name: "", code: "", role: "EMPLOYEE", department: "", position: "", teamId: "" });
+      setForm({ matricule: "", name: "", code: "", role: "EMPLOYEE", department: "PROJECT", position: "", teamId: "" });
       load();
     } catch (err) {
       setError(err.message || "Impossible de créer l'employé.");
@@ -92,7 +93,14 @@ export default function Employees() {
             />
           </div>
           <div className="min-w-0">
-            <Input id="department" label={t("department")} value={form.department} onChange={(e) => setForm({ ...form, department: e.target.value })} />
+            <div className="min-w-0">
+            <label className="mb-1.5 block text-sm font-medium text-ink/70">Département</label>
+            <Select
+              value={form.department}
+              onChange={(e) => setForm({ ...form, department: e.target.value })}
+              options={DEPARTMENTS.map((department) => ({ value: department.value, label: department.label }))}
+            />
+          </div>
           </div>
           <div className="min-w-0">
             <Input id="position" label={t("position")} value={form.position} onChange={(e) => setForm({ ...form, position: e.target.value })} />

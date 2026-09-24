@@ -1,85 +1,360 @@
-import { useEffect, useMemo, useState } from "react";
-import { FaArrowDown, FaArrowUp, FaChartLine, FaCheckCircle, FaClock, FaMinus, FaTasks, FaUsers } from "react-icons/fa";
-import { api } from "../services/api";
-import { useAuth } from "../context/AuthContext";
-import { useLanguage } from "../context/LanguageContext";
-import Card from "../components/ui/card";
-import Title from "../components/ui/title";
-import DashboardChartHeading from "../components/dashboard/ChartHeading";
-import DashboardStatChip from "../components/dashboard/StatChip";
-import DashboardHoverLineChart from "../components/dashboard/HoverLineChart";
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  FaArrowRight,
+  FaCheckCircle,
+  FaClock,
+  FaExclamationTriangle,
+  FaProjectDiagram,
+  FaUsers,
+} from 'react-icons/fa';
+import Card from '../components/ui/card';
+import Title from '../components/ui/title';
+import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 
-const COMPARISONS = [
-  { key: "DD", label: "D&D", title: "Jour actuel contre jour précédent" },
-  { key: "DW", label: "D&W", title: "Jour actuel contre le même jour la semaine précédente" },
-  { key: "DM", label: "D&M", title: "Jour actuel contre le mois en cours" },
-  { key: "WW", label: "W&W", title: "Semaine actuelle contre semaine précédente" },
-  { key: "WM", label: "W&M", title: "Semaine actuelle contre mois actuel" },
-  { key: "MM", label: "M&M", title: "Mois actuel contre mois précédent" },
-  { key: "MY", label: "M&Y", title: "Mois actuel contre année actuelle" },
-  { key: "YY", label: "Y&Y", title: "Année actuelle contre année précédente" },
-];
+const displayPct = (value) =>
+  value === null || value === undefined ? '—' : `${Math.round(Number(value) || 0)}%`;
 
-const COLORS = { success: "#10B981", warning: "#F59E0B" };
+const clamp = (value) => Math.min(100, Math.max(0, Number(value) || 0));
 
-function startOfDay(value = new Date()) { const date = new Date(value); date.setHours(0, 0, 0, 0); return date; }
-function startOfWeek(value = new Date()) { const date = startOfDay(value); const day = date.getDay() || 7; date.setDate(date.getDate() - day + 1); return date; }
-function startOfMonth(value = new Date()) { const date = startOfDay(value); date.setDate(1); return date; }
-function startOfYear(value = new Date()) { const date = startOfDay(value); date.setMonth(0, 1); return date; }
-function addDays(value, days) { const date = new Date(value); date.setDate(date.getDate() + days); return date; }
-function endOfCurrentDay() { const date = new Date(); date.setHours(23, 59, 59, 999); return date; }
-function comparisonWindows(key) {
-  const today = startOfDay();
-  const week = startOfWeek();
-  const month = startOfMonth();
-  const year = startOfYear();
-  const previousMonth = new Date(month); previousMonth.setMonth(previousMonth.getMonth() - 1);
-  const previousYear = new Date(year); previousYear.setFullYear(previousYear.getFullYear() - 1);
-  const currentDay = { start: today, end: endOfCurrentDay() };
-  if (key === "DW") return { current: currentDay, previous: { start: addDays(today, -7), end: addDays(today, -7) } };
-  if (key === "DM") return { current: currentDay, previous: { start: month, end: addDays(today, -1) } };
-  if (key === "WW") return { current: { start: week, end: endOfCurrentDay() }, previous: { start: addDays(week, -7), end: addDays(week, -1) } };
-  if (key === "WM") return { current: { start: week, end: endOfCurrentDay() }, previous: { start: month, end: endOfCurrentDay() } };
-  if (key === "MM") return { current: { start: month, end: endOfCurrentDay() }, previous: { start: previousMonth, end: addDays(month, -1) } };
-  if (key === "MY") return { current: { start: month, end: endOfCurrentDay() }, previous: { start: year, end: endOfCurrentDay() } };
-  if (key === "YY") return { current: { start: year, end: endOfCurrentDay() }, previous: { start: previousYear, end: addDays(year, -1) } };
-  return { current: currentDay, previous: { start: addDays(today, -1), end: addDays(today, -1) } };
+function copy(t, key, fr, en) {
+  const translated = typeof t === 'function' ? t(key) : key;
+  return translated && translated !== key ? translated : (translated === 'Tasks' || translated === 'Dashboard' ? en : fr);
 }
-function inRange(task, range) { const time = new Date(task.createdAt || 0).getTime(); return time >= range.start.getTime() && time <= range.end.getTime(); }
-function isCompleted(task) { return task.status === "COMPLETED" || task.completed === true; }
-function summarize(tasks, range) { const filtered = tasks.filter((task) => inRange(task, range)); const completed = filtered.filter(isCompleted).length; return { total: filtered.length, completed, pending: filtered.length - completed, rate: filtered.length ? Math.round(completed / filtered.length * 100) : 0 }; }
-function trend(current, previous) { const difference = current - previous; return { tone: difference > 0 ? "up" : difference < 0 ? "down" : "stable", icon: difference > 0 ? <FaArrowUp /> : difference < 0 ? <FaArrowDown /> : <FaMinus /> }; }
-function makeIndicators(current, previous, employeePerformance) { return [
-  { key: "tasks", label: "Tâches", value: current.total, trend: trend(current.total, previous.total).icon, tone: trend(current.total, previous.total).tone },
-  { key: "completed", label: "Tâches terminées", value: current.completed, trend: trend(current.completed, previous.completed).icon, tone: trend(current.completed, previous.completed).tone },
-  { key: "rate", label: "Taux de réalisation", value: `${current.rate}%`, trend: trend(current.rate, previous.rate).icon, tone: trend(current.rate, previous.rate).tone },
-  ...employeePerformance.map((employee) => ({ key: employee.uid, label: employee.name || employee.email, value: `${employee.current}%`, trend: trend(employee.current, employee.previous).icon, tone: trend(employee.current, employee.previous).tone })),
-]; }
-function ComparisonSelector({ active, onChange }) { return <div className="flex w-full gap-1 overflow-x-auto rounded-xl border border-line bg-white p-1 sm:w-auto">{COMPARISONS.map((item) => <button key={item.key} type="button" onClick={() => onChange(item.key)} className={`whitespace-nowrap rounded-lg px-3 py-2 text-xs font-bold transition ${active === item.key ? "bg-primary text-white" : "text-muted hover:bg-surface-2 hover:text-ink"}`}>{item.label}</button>)}</div>; }
+
+function Metric({ icon, label, value, hint, tone = 'primary' }) {
+  const tones = {
+    primary: 'bg-primary/10 text-primary',
+    success: 'bg-emerald-50 text-emerald-600',
+    warning: 'bg-amber-50 text-amber-600',
+    danger: 'bg-red-50 text-red-600',
+  };
+  return (
+    <Card className="border-line bg-white p-3 sm:p-4">
+      <div className="flex min-w-0 items-center justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-[10px] font-semibold uppercase tracking-wide text-muted sm:text-xs">{label}</p>
+          <p className="mt-1 text-2xl font-bold leading-none text-ink sm:text-3xl">{value}</p>
+          {hint && <p className="mt-1 truncate text-[10px] text-muted sm:text-xs">{hint}</p>}
+        </div>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg sm:h-10 sm:w-10 ${tones[tone]}`}>{icon}</span>
+      </div>
+    </Card>
+  );
+}
+
+function Progress({ value, tone = 'primary' }) {
+  const cls = tone === 'success'
+    ? 'bg-emerald-500'
+    : tone === 'warning'
+      ? 'bg-amber-500'
+      : tone === 'danger'
+        ? 'bg-red-500'
+        : 'bg-primary';
+  return (
+    <div className="h-1.5 overflow-hidden rounded-full bg-surface-2">
+      <div className={`h-full rounded-full ${cls} transition-all`} style={{ width: `${clamp(value)}%` }} />
+    </div>
+  );
+}
+
+function Delta({ label, value }) {
+  const n = Number(value);
+  if (value === null || value === undefined || Number.isNaN(n)) {
+    return (
+      <div className="min-w-0 rounded-lg bg-white px-2 py-1.5 text-center shadow-sm">
+        <span className="block text-[9px] font-bold text-muted">{label}</span>
+        <span className="block text-[10px] font-semibold text-muted">—</span>
+      </div>
+    );
+  }
+  const positive = n > 0;
+  const negative = n < 0;
+  return (
+    <div className="min-w-0 rounded-lg bg-white px-2 py-1.5 text-center shadow-sm">
+      <span className="block text-[9px] font-bold text-muted">{label}</span>
+      <span className={`block truncate text-[10px] font-bold ${positive ? 'text-emerald-700' : negative ? 'text-red-700' : 'text-muted'}`}>
+        {positive ? '+' : ''}{n}%
+      </span>
+    </div>
+  );
+}
+
+function Avatar({ name, role }) {
+  const initials = String(name || 'U').split(/\s+/).filter(Boolean).map((x) => x[0]).join('').slice(0, 2).toUpperCase();
+  return <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary sm:h-9 sm:w-9" title={role}>{initials}</div>;
+}
+
+function SmallStat({ label, value }) {
+  return (
+    <div className="min-w-0 rounded-lg bg-white px-1.5 py-1.5 text-center">
+      <p className="truncate text-[8px] text-muted sm:text-[9px]">{label}</p>
+      <p className="truncate text-[11px] font-bold text-ink sm:text-xs">{value}</p>
+    </div>
+  );
+}
+
+function SectionProgress({ section, t }) {
+  const progress = clamp(section.progress);
+  const status = String(section.status || '').toUpperCase();
+  const statusLabel = {
+    ACTIVE: copy(t, 'active', 'En cours', 'Active'),
+    COMPLETED: copy(t, 'completed', 'Terminée', 'Completed'),
+    PAUSED: copy(t, 'paused', 'En pause', 'Paused'),
+    CANCELLED: copy(t, 'cancelled', 'Annulée', 'Cancelled'),
+  }[status] || (status || '—');
+
+  return (
+    <div className="rounded-xl border border-line bg-surface-2 p-2.5 sm:p-3">
+      <div className="flex min-w-0 items-start justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-bold text-ink sm:text-sm">{section.name}</p>
+          <p className="mt-0.5 text-[9px] text-muted sm:text-[10px]">
+            {copy(t, 'weight', 'Poids', 'Weight')} : {Number(section.normalizedWeight ?? section.weight ?? 0).toLocaleString('fr-FR')}%
+            {statusLabel !== '—' && <> · {statusLabel}</>}
+          </p>
+        </div>
+        <span className="shrink-0 rounded-lg bg-primary px-2 py-1 text-[10px] font-bold text-white sm:text-xs">{displayPct(progress)}</span>
+      </div>
+
+      <div className="mt-2">
+        <Progress value={progress} tone={progress >= 100 ? 'success' : 'primary'} />
+      </div>
+
+      <div className="mt-2 grid grid-cols-2 gap-1 sm:grid-cols-3">
+        <SmallStat label={copy(t, 'validatedWork', 'Travail validé', 'Validated work')} value={section.validatedPoints ?? 0} />
+        <SmallStat label={copy(t, 'plannedWork', 'Travail prévu', 'Planned work')} value={section.plannedPoints ?? 0} />
+        <SmallStat label={copy(t, 'weight', 'Poids', 'Weight')} value={`${Number(section.normalizedWeight ?? section.weight ?? 0).toLocaleString('fr-FR')}%`} />
+      </div>
+    </div>
+  );
+}
+
+function ProjectKpiCard({ project, t }) {
+  const sections = Array.isArray(project.sections) ? project.sections : [];
+  const visibleSections = sections.slice(0, 6);
+  const remaining = Math.max(0, sections.length - visibleSections.length);
+  const status = String(project.status || '').toUpperCase();
+
+  return (
+    <Link to={`/projets/${project.id}`} className="block min-w-0 rounded-xl border border-line bg-surface-2 p-3 transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-sm sm:p-3.5">
+      <div className="flex min-w-0 items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-bold text-ink sm:text-sm">{project.name}</p>
+          <p className="mt-0.5 text-[9px] text-muted sm:text-[10px]">
+            {status || '—'} · {project.sectionCount ?? sections.length} {copy(t, 'sections', 'section(s)', 'section(s)')}
+          </p>
+        </div>
+        <span className="shrink-0 rounded-lg bg-primary px-2.5 py-1.5 text-xs font-bold text-white">{displayPct(project.progress)}</span>
+      </div>
+
+      <div className="mt-2">
+        <Progress value={project.progress} tone={Number(project.progress) >= 100 ? 'success' : 'primary'} />
+      </div>
+
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <span className="text-[9px] font-semibold uppercase tracking-wide text-muted">
+          {copy(t, 'projectEvolution', 'Évolution par sections', 'Progress by sections')}
+        </span>
+        <span className="text-[9px] text-muted">
+          {copy(t, 'weightedProgress', 'Progression pondérée', 'Weighted progress')}
+        </span>
+      </div>
+
+      <div className="mt-2 grid gap-1.5">
+        {visibleSections.map((section) => <SectionProgress key={section.id} section={section} t={t} />)}
+        {!visibleSections.length && (
+          <div className="rounded-xl border border-dashed border-line p-4 text-center text-[10px] text-muted">
+            {copy(t, 'noSections', 'Aucune section configurée.', 'No sections configured.')}
+          </div>
+        )}
+        {remaining > 0 && (
+          <p className="pt-1 text-center text-[9px] font-semibold text-primary">
+            +{remaining} {copy(t, 'moreSections', 'autre(s) section(s)', 'more section(s)')}
+          </p>
+        )}
+      </div>
+    </Link>
+  );
+}
+
+function EmployeeKpiCard({ member, business, t }) {
+  const k = member.kpis || {};
+  const evolution = k.evolution || {};
+  const section = member.sectionNames?.length ? member.sectionNames.join(' · ') : copy(t, 'noSectionAssigned', 'Aucune section attribuée', 'No section assigned');
+  const project = member.projectNames?.length ? member.projectNames.join(' · ') : copy(t, 'noProjectAssigned', 'Aucun projet attribué', 'No project assigned');
+  const hasSectionData = member.sectionCount > 0 && k.total > 0;
+  const performance = member.performance;
+
+  return (
+    <article className="min-w-0 rounded-xl border border-line bg-surface-2 p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-3">
+      <div className="flex min-w-0 gap-2.5 sm:gap-3">
+        <Avatar name={member.name} role={member.role} />
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="truncate text-xs font-bold text-ink sm:text-sm">{member.name}</p>
+              <p className="truncate text-[9px] font-medium uppercase tracking-wide text-muted sm:text-[10px]">{member.role === 'MANAGER' ? 'Manager' : 'Employé'}</p>
+            </div>
+            <div className="shrink-0 rounded-lg bg-primary px-2 py-1.5 text-right text-white sm:px-2.5">
+              <p className="text-[8px] uppercase tracking-wide opacity-80">{copy(t, 'execution', 'Exécution', 'Execution')}</p>
+              <p className="text-sm font-bold leading-none sm:text-base">{hasSectionData ? displayPct(performance) : '—'}</p>
+            </div>
+          </div>
+
+          <div className="mt-1.5 min-w-0 rounded-lg bg-white px-2 py-1.5">
+            <p className="truncate text-[10px] font-semibold text-ink sm:text-[11px]">{section}</p>
+            <p className="truncate text-[9px] text-muted sm:text-[10px]">{project}</p>
+          </div>
+
+          <div className="mt-1.5 grid grid-cols-3 gap-1">
+            <Delta label="DoD" value={evolution.dod} />
+            <Delta label="WoW" value={evolution.wow} />
+            <Delta label="MoM" value={evolution.mom} />
+          </div>
+
+          <div className="mt-1.5 grid grid-cols-4 gap-1">
+            <SmallStat label={copy(t, 'tasks', 'Tâches', 'Tasks')} value={k.total || 0} />
+            <SmallStat label={copy(t, 'validated', 'Validées', 'Validated')} value={k.validated || 0} />
+            <SmallStat label={copy(t, 'late', 'Retard', 'Late')} value={k.overdue || 0} />
+            <SmallStat label={copy(t, 'onTime', 'À temps', 'On time')} value={displayPct(k.onTimeRate)} />
+          </div>
+
+          {business?.kpi?.metrics?.length > 0 && (
+            <div className="mt-1.5 rounded-lg bg-primary/5 p-2">
+              <div className="flex items-center justify-between gap-2"><p className="text-[9px] font-bold uppercase tracking-wide text-primary">KPI métier</p><span className="text-[9px] font-semibold text-muted">{String(business.departmentLabel || '').replace(/^Département\s+/i, '')}</span></div>
+              <div className="mt-1 grid grid-cols-2 gap-1">{business.kpi.metrics.slice(0, 4).map((metric) => <SmallStat key={metric.key} label={metric.label} value={metric.value} />)}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+}
+
+function TeamKpiCard({ team, t }) {
+  const k = team.kpis || {};
+  const evolution = k.evolution || {};
+  const score = team.progress;
+  const tone = k.overdue > 0 ? 'danger' : (score ?? 0) >= 70 ? 'success' : 'warning';
+  return (
+    <article className="min-w-0 rounded-xl border border-line bg-surface-2 p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-3">
+      <div className="min-w-0 rounded-lg bg-white px-2.5 py-2">
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-xs font-bold text-ink sm:text-sm">{team.name}</p>
+            <p className="truncate text-[9px] text-muted sm:text-[10px]">Responsable : {team.managerName || 'Non défini'} · {team.memberCount || 0} membre(s)</p>
+          </div>
+          <span className="shrink-0 rounded-lg bg-primary px-2 py-1 text-xs font-bold text-white">{displayPct(score)}</span>
+        </div>
+      </div>
+      <div className="mt-2 flex items-center gap-2"><div className="min-w-0 flex-1"><Progress value={score} tone={tone} /></div><span className="text-[9px] font-semibold text-muted">Indice d'exécution</span></div>
+      <div className="mt-1.5 grid grid-cols-3 gap-1"><Delta label="DoD" value={evolution.dod} /><Delta label="WoW" value={evolution.wow} /><Delta label="MoM" value={evolution.mom} /></div>
+      <div className="mt-1.5 grid grid-cols-4 gap-1"><SmallStat label="Tâches" value={k.total || 0} /><SmallStat label="Validées" value={k.validated || 0} /><SmallStat label="Retard" value={k.overdue || 0} /><SmallStat label="À temps" value={displayPct(k.onTimeRate)} /></div>
+    </article>
+  );
+}
 
 export default function Dashboard() {
   const { profile } = useAuth();
   const { t } = useLanguage();
-  const [tasks, setTasks] = useState([]);
-  const [employees, setEmployees] = useState([]);
-  const [selectedKey, setSelectedKey] = useState("DM");
-  const isEmployee = profile?.role === "EMPLOYEE";
-  useEffect(() => { api.get("/tasks").then(setTasks).catch(() => setTasks([])); if (!isEmployee) api.get("/employees").then(setEmployees).catch(() => setEmployees([])); }, [isEmployee]);
-  const selected = COMPARISONS.find((item) => item.key === selectedKey) || COMPARISONS[0];
-  const windows = comparisonWindows(selected.key);
-  const current = useMemo(() => summarize(tasks, windows.current), [tasks, selectedKey]);
-  const previous = useMemo(() => summarize(tasks, windows.previous), [tasks, selectedKey]);
-  const employeePerformance = useMemo(() => employees.map((employee) => {
-    const rate = (items) => items.length ? Math.round(items.filter(isCompleted).length / items.length * 100) : 0;
-    return { ...employee, current: rate(tasks.filter((task) => inRange(task, windows.current) && task.assigneeId === employee.uid)), previous: rate(tasks.filter((task) => inRange(task, windows.previous) && task.assigneeId === employee.uid)) };
-  }), [employees, tasks, selectedKey]);
-  const indicators = makeIndicators(current, previous, isEmployee ? [] : employeePerformance);
-  const chartData = [{ label: "Avant", total: previous.total, completed: previous.completed }, { label: "Actuel", total: current.total, completed: current.completed }];
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  return <div className="mx-auto max-w-7xl pb-8">
-    <header className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between"><div><p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">Performance</p><Title as="h1" variant="page" className="mt-1 mb-1">{t("hello")} {profile?.name?.split(" ")[0] || t("you")}</Title><p className="text-sm text-muted">{selected.title}</p></div><ComparisonSelector active={selected.key} onChange={setSelectedKey} /></header>
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><DashboardStatChip icon={<FaTasks />} label="Tâches" value={current.total} color="primary" /><DashboardStatChip icon={<FaCheckCircle />} label="Terminées" value={current.completed} color="success" /><DashboardStatChip icon={<FaClock />} label="À traiter" value={current.pending} color="warning" /><DashboardStatChip icon={<FaChartLine />} label="Réalisation" value={`${current.rate}%`} color="blue" /></div>
-    <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(280px,0.8fr)]"><Card className="bg-white"><DashboardChartHeading icon={<FaChartLine />} title={selected.label} text={selected.title} /><DashboardHoverLineChart data={chartData} valueKey="total" showCompleted t={t} indicators={indicators} /></Card><Card className="bg-white"><DashboardChartHeading icon={<FaCheckCircle />} title="Évolution de la réalisation" text="Comparaison de la période active" /><div className="flex h-48 items-center justify-center"><div className="relative flex h-36 w-36 items-center justify-center rounded-full" style={{ background: `conic-gradient(${COLORS.success} ${current.rate}%, ${COLORS.warning} 0)` }}><div className="flex h-24 w-24 items-center justify-center rounded-full bg-white text-2xl font-bold text-ink">{current.rate}%</div></div></div><div className="flex justify-center gap-5 text-xs text-muted"><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />Terminées</span><span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-500" />À traiter</span></div></Card></div>
-    {!isEmployee && <Card className="mt-6 bg-white"><DashboardChartHeading icon={<FaUsers />} title="Performance des employés" text="Évolution par rapport à la période précédente" /><div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{employeePerformance.map((employee) => { const item = trend(employee.current, employee.previous); return <div key={employee.uid} className="flex items-center justify-between gap-3 rounded-xl border border-line bg-white p-3"><div className="min-w-0"><p className="truncate text-sm font-semibold text-ink">{employee.name || employee.email}</p><p className="text-xs text-muted">{employee.previous}% avant → {employee.current}% actuel</p></div><span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${item.tone === "up" ? "bg-emerald-50 text-emerald-600" : item.tone === "down" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"}`}>{item.icon}</span></div>; })}</div></Card>}
-  </div>;
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    api.get('/analytics')
+      .then((value) => alive && setData(value))
+      .catch((e) => alive && setError(e.message))
+      .finally(() => alive && setLoading(false));
+    return () => { alive = false; };
+  }, []);
+
+  if (loading) return <div className="mx-auto w-full max-w-7xl px-0"><Title as="h1" variant="page">{copy(t, 'dashboard', 'Pilotage de l’entreprise', 'Company dashboard')}</Title><div className="mt-6 animate-pulse space-y-3"><div className="h-24 rounded-2xl bg-surface-2" /><div className="h-64 rounded-2xl bg-surface-2" /></div></div>;
+  if (error) return <Card className="mx-auto w-full max-w-7xl border-red-200 bg-red-50 text-red-700">{error}</Card>;
+
+  const s = data?.summary || {};
+  const k = s.taskKpis || {};
+  const projects = data?.projects || [];
+  const alerts = data?.alerts || [];
+  const members = data?.memberKpis || [];
+  const teams = data?.teamKpis || [];
+  const business = data?.businessKpis || { departments: [], employees: [] };
+  const businessByEmployee = new Map((business.employees || []).map((item) => [String(item.uid), item]));
+  const canSeeBusiness = ['SUPER_ADMIN', 'ADMIN'].includes(String(profile?.role || '').toUpperCase());
+
+  const projectSummary = useMemo(() => ({
+    sections: projects.reduce((sum, project) => sum + Number(project.sectionCount || project.sections?.length || 0), 0),
+    active: projects.filter((project) => ['ACTIVE', 'PLANNED', 'PAUSED'].includes(project.status)).length,
+  }), [projects]);
+
+  return (
+    <div className="mx-auto w-full max-w-7xl min-w-0 overflow-x-hidden pb-6 sm:pb-10">
+      <header className="mb-4 min-w-0 sm:mb-5">
+        <p className="text-[10px] font-bold uppercase tracking-[.16em] text-primary sm:text-xs">Pilotage</p>
+        <Title as="h1" variant="page" className="mt-0.5 text-xl sm:text-2xl">{copy(t, 'hello', 'Bonjour', 'Hello')} {profile?.name?.split(' ')[0] || copy(t, 'you', 'Utilisateur', 'there')}</Title>
+        <p className="mt-1 max-w-3xl text-xs leading-relaxed text-muted">{copy(t, 'dashboardDescription', 'Les chiffres du dashboard séparent l’avancement pondéré des projets de la performance d’exécution des équipes et des employés.', 'The dashboard separates weighted project progress from team and employee execution performance.')}</p>
+      </header>
+
+      <div className="grid min-w-0 grid-cols-2 gap-2.5 sm:grid-cols-2 sm:gap-3 xl:grid-cols-4">
+        <Metric icon={<FaProjectDiagram />} label={copy(t, 'activeProjects', 'Projets actifs', 'Active projects')} value={s.activeProjects || 0} hint={`${s.totalProjects || 0} ${copy(t, 'total', 'au total', 'total')}`} />
+        <Metric icon={<FaCheckCircle />} label={copy(t, 'overallProgress', 'Avancement global', 'Overall progress')} value={displayPct(s.overallProgress)} hint={copy(t, 'weightedValidatedWork', 'Travail validé pondéré', 'Weighted validated work')} tone="success" />
+        <Metric icon={<FaClock />} label={copy(t, 'pendingValidations', 'À valider', 'Pending validation')} value={s.pendingValidations || 0} hint={copy(t, 'submissions', 'Soumissions', 'Submissions')} tone="warning" />
+        <Metric icon={<FaExclamationTriangle />} label={copy(t, 'toWatch', 'À surveiller', 'To watch')} value={(s.overdueTasks || 0) + (s.blockedTasks || 0)} hint={`${s.overdueTasks || 0} ${copy(t, 'late', 'retard', 'late')} · ${s.blockedTasks || 0} ${copy(t, 'blocked', 'bloquées', 'blocked')}`} tone="danger" />
+      </div>
+
+      <Card className="mt-4 min-w-0 bg-white p-3 sm:mt-5 sm:p-4">
+        <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[.14em] text-primary sm:text-xs">Projets</p>
+            <h2 className="text-base font-bold text-ink sm:text-lg">{copy(t, 'projectTracking', 'Évolution des projets', 'Project evolution')}</h2>
+            <p className="text-[10px] text-muted sm:text-xs">{copy(t, 'projectTrackingDescription', 'La progression est présentée par section. Les tâches servent au calcul pondéré mais ne sont pas affichées comme indicateur principal.', 'Progress is presented by section. Tasks drive the weighted calculation but are not shown as the primary indicator.')}</p>
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
+            <span className="text-[9px] font-semibold text-muted">{projectSummary.sections} {copy(t, 'sections', 'sections', 'sections')}</span>
+            <Link to="/projets" className="text-[10px] font-semibold text-primary sm:text-xs">{copy(t, 'allProjects', 'Tous les projets', 'All projects')} <FaArrowRight className="inline" /></Link>
+          </div>
+        </div>
+        <div className="mt-3 grid min-w-0 gap-2.5 sm:grid-cols-2 sm:gap-3">
+          {projects.slice(0, 8).map((project) => <ProjectKpiCard key={project.id} project={project} t={t} />)}
+          {!projects.length && <p className="py-8 text-center text-xs text-muted sm:col-span-2">{copy(t, 'noProjects', 'Aucun projet à afficher.', 'No projects to display.')}</p>}
+        </div>
+      </Card>
+
+      <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-2 sm:mt-5 sm:gap-5">
+        <Card className="min-w-0 bg-white p-3 sm:p-4">
+          <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-primary sm:text-xs">Équipes</p><h2 className="text-base font-bold text-ink sm:text-lg">Performance des équipes</h2><p className="mt-0.5 text-[10px] leading-relaxed text-muted sm:text-xs">Indice d'exécution basé sur l'avancement des sections, les délais et la qualité des validations.</p></div>
+          <div className="mt-3 grid max-h-[430px] min-w-0 grid-cols-1 gap-2.5 overflow-y-auto pr-0.5 sm:grid-cols-2 sm:gap-3">{teams.map((team) => <TeamKpiCard key={team.id} team={team} t={t} />)}{!teams.length && <div className="rounded-xl border border-dashed border-line p-6 text-center text-xs text-muted sm:col-span-2"><FaUsers className="mx-auto mb-2 text-primary" />Aucune équipe n'est encore configurée.</div>}</div>
+          <div className="mt-3 text-right"><Link to="/equipes" className="text-[10px] font-semibold text-primary sm:text-xs">Voir les équipes <FaArrowRight className="inline" /></Link></div>
+        </Card>
+
+        <Card className="min-w-0 bg-white p-3 sm:p-4">
+          <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-primary sm:text-xs">Employés</p><h2 className="text-base font-bold text-ink sm:text-lg">Performance des employés</h2><p className="mt-0.5 text-[10px] leading-relaxed text-muted sm:text-xs">Le score mesure l'exécution des tâches de leurs sections. Il ne remplace pas le KPI métier.</p></div>
+          <div className="mt-3 grid max-h-[430px] min-w-0 grid-cols-1 gap-2.5 overflow-y-auto pr-0.5 sm:grid-cols-2 sm:gap-3">{members.map((member) => <EmployeeKpiCard key={member.uid} member={member} business={businessByEmployee.get(String(member.uid))} t={t} />)}{!members.length && <div className="rounded-xl border border-dashed border-line p-6 text-center text-xs text-muted sm:col-span-2"><FaUsers className="mx-auto mb-2 text-primary" />Aucun employé ou manager n'est encore disponible.</div>}</div>
+        </Card>
+      </div>
+
+      {canSeeBusiness && (
+        <Card className="mt-4 min-w-0 bg-white p-3 sm:mt-5 sm:p-4">
+          <div className="flex min-w-0 flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+            <div className="min-w-0"><p className="text-[10px] font-bold uppercase tracking-[.14em] text-primary sm:text-xs">Activité métier</p><h2 className="text-base font-bold text-ink sm:text-lg">KPI par département</h2><p className="mt-0.5 text-[10px] leading-relaxed text-muted sm:text-xs">Chaque département utilise ses propres mesures : ventes, CA, prospects, stock, livraisons, production, etc.</p></div>
+            <Link to="/activite-metier" className="shrink-0 text-[10px] font-semibold text-primary sm:text-xs">Saisir une activité <FaArrowRight className="inline" /></Link>
+          </div>
+          <div className="mt-3 grid min-w-0 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+            {(business.departments || []).map((dep) => (
+              <article key={dep.department} className="min-w-0 rounded-xl border border-line bg-surface-2 p-3">
+                <div className="flex items-start justify-between gap-2"><div className="min-w-0"><p className="truncate text-xs font-bold text-ink sm:text-sm">{String(dep.label || '').replace(/^Département\s+/i, '')}</p><p className="text-[9px] text-muted">{dep.memberCount || 0} membre(s) · {dep.entryCount || 0} entrée(s)</p></div><span className="shrink-0 rounded-lg bg-primary px-2 py-1 text-[10px] font-bold text-white">{Number(dep.performance || 0).toLocaleString('fr-FR')}</span></div>
+                <div className="mt-2 grid grid-cols-2 gap-1">{(dep.metrics || []).slice(0, 4).map((metric) => <SmallStat key={metric.key} label={metric.label} value={Number(metric.value || 0).toLocaleString('fr-FR')} />)}</div>
+              </article>
+            ))}
+            {!business.departments?.length && <div className="rounded-xl border border-dashed border-line p-6 text-center text-xs text-muted sm:col-span-2 xl:col-span-3">Aucune donnée métier saisie.</div>}
+          </div>
+        </Card>
+      )}
+    </div>
+  );
 }

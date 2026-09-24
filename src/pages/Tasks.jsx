@@ -1,17 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { api } from "../services/api";
-import { useAuth } from "../context/AuthContext";
-import { useLanguage } from "../context/LanguageContext";
-import Button from "../components/ui/Button";
-import Card from "../components/ui/card";
-import Input from "../components/ui/input";
-import Select from "../components/ui/select";
-import Textarea from "../components/ui/textarea";
-import Title from "../components/ui/title";
-import Badge from "../components/ui/badge";
-import TaskEditorDialog from "../components/tasks/TaskEditorDialog";
-import TaskDetailsDialog from "../components/tasks/TaskDetailsDialog";
+import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { api } from '../services/api';
+import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import Button from '../components/ui/Button';
+import Card from '../components/ui/card';
+import Title from '../components/ui/title';
+import Badge from '../components/ui/badge';
+import TaskEditorDialog from '../components/tasks/TaskEditorDialog';
+import TaskDetailsDialog from '../components/tasks/TaskDetailsDialog';
 import {
   formatTaskDate,
   getTaskStatusColor,
@@ -20,70 +17,76 @@ import {
   getTaskTimelineTone,
   getTaskDisplayDate,
   sortTasksByDisplayOrder,
-} from "../utils/getTaskDisplayStatus";
+} from '../utils/getTaskDisplayStatus';
 
-const TASK_STATUSES = ["TODO", "IN_PROGRESS", "REVIEW", "COMPLETED", "REJECTED", "CANCELLED"];
-const PRIORITY_OPTIONS = [
-  { value: "LOW", label: "Basse" },
-  { value: "MEDIUM", label: "Moyenne" },
-  { value: "HIGH", label: "Haute" },
-  { value: "URGENT", label: "Urgente" },
-];
+function copy(t, key, fr, en) {
+  const translated = typeof t === 'function' ? t(key) : key;
+  return translated && translated !== key ? translated : fr;
+}
 
 export default function Tasks() {
   const { profile } = useAuth();
   const { t } = useLanguage();
-  const role = profile?.role;
-  const isEmployee = role === "EMPLOYEE";
-  const isSuperAdmin = role === "SUPER_ADMIN";
+  const role = String(profile?.role || '').toUpperCase();
+  const isEmployee = role === 'EMPLOYEE';
+  const canAssign = ['SUPER_ADMIN', 'ADMIN', 'MANAGER'].includes(role);
 
   const [tasks, setTasks] = useState([]);
   const [projects, setProjects] = useState([]);
+  const [sections, setSections] = useState([]);
   const [employees, setEmployees] = useState([]);
   const [createOpen, setCreateOpen] = useState(false);
-  const [superCreateOpen, setSuperCreateOpen] = useState(false);
   const [editTask, setEditTask] = useState(null);
   const [selectedTask, setSelectedTask] = useState(null);
-  const [activeMenuTaskId, setActiveMenuTaskId] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [managerForm, setManagerForm] = useState({
-    title: "",
-    description: "",
-    assigneeId: "",
-    priority: "MEDIUM",
-    projectId: "",
-  });
 
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [profile?.uid]);
 
   async function loadData() {
     try {
       const [loadedTasks, loadedProjects, loadedEmployees] = await Promise.all([
-        api.get("/tasks").catch(() => []),
-        api.get("/projects").catch(() => []),
-        api.get("/employees").catch(() => []),
+        api.get('/tasks').catch(() => []),
+        api.get('/projects').catch(() => []),
+        canAssign ? api.get('/employees').catch(() => []) : Promise.resolve([]),
       ]);
 
+      const nextProjects = loadedProjects || [];
+      const sectionResponses = await Promise.all(
+        nextProjects.map(async (project) => {
+          try {
+            const data = await api.get(`/project-management/projects/${project.id}/sections`);
+            return Array.isArray(data) ? data : [];
+          } catch {
+            return [];
+          }
+        })
+      );
+
       setTasks(loadedTasks || []);
-      setProjects(loadedProjects || []);
+      setProjects(nextProjects);
       setEmployees(loadedEmployees || []);
+      setSections(sectionResponses.flat());
     } catch {
       setTasks([]);
       setProjects([]);
       setEmployees([]);
+      setSections([]);
     }
   }
 
   const orderedTasks = useMemo(() => sortTasksByDisplayOrder(tasks), [tasks]);
-  const employeeTasks = useMemo(() => orderedTasks.filter((task) => task.assigneeId === profile?.uid), [orderedTasks, profile?.uid]);
+  const employeeTasks = useMemo(
+    () => orderedTasks.filter((task) => String(task.assigneeId) === String(profile?.uid)),
+    [orderedTasks, profile?.uid]
+  );
 
-  async function handleCreateEmployeeTask(values) {
+  async function handleCreate(values) {
     setLoading(true);
     try {
-      await api.post("/tasks", values);
+      await api.post('/tasks', values);
       setCreateOpen(false);
       await loadData();
     } finally {
@@ -91,7 +94,7 @@ export default function Tasks() {
     }
   }
 
-  async function handleEditEmployeeTask(values) {
+  async function handleEdit(values) {
     if (!editTask) return;
     setLoading(true);
     try {
@@ -104,290 +107,134 @@ export default function Tasks() {
   }
 
   async function handleValidateTask(task) {
-    await api.patch(`/tasks/${task.id}/status`, { status: "COMPLETED" });
-    setActiveMenuTaskId(null);
+    await api.patch(`/tasks/${task.id}/status`, { status: 'COMPLETED' });
     await loadData();
   }
 
-  async function handleManagerCreate(event) {
-    event.preventDefault();
-    if (!managerForm.title || !managerForm.assigneeId) {
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await api.post("/tasks", managerForm);
-      setManagerForm({
-        title: "",
-        description: "",
-        assigneeId: "",
-        priority: "MEDIUM",
-        projectId: "",
-      });
-      await loadData();
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  async function handleSuperAdminCreate(values) {
-    setLoading(true);
-    try {
-      await api.post("/tasks", { ...values, priority: "MEDIUM" });
-      setSuperCreateOpen(false);
-      await loadData();
-    } finally {
-      setLoading(false);
-    }
-  }
+  const dialogTitle = isEmployee
+    ? copy(t, 'addTask', 'Ajouter une tâche', 'Add a task')
+    : copy(t, 'createTaskForEmployee', 'Créer une tâche pour un employé', 'Create a task for an employee');
 
   if (isEmployee) {
     return (
-      <div>
+      <div className="mx-auto w-full max-w-7xl pb-10">
         <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <Title as="h1" variant="page" className="mb-1">
-              {t("tasks")}
-            </Title>
-            <p className="text-sm text-muted">{t("taskDescription")}</p>
+            <Title as="h1" variant="page" className="mb-1">{t('tasks')}</Title>
+            <p className="text-sm text-muted">{t('taskDescription')}</p>
           </div>
-
-          <Button className="shrink-0" onClick={() => setCreateOpen(true)}>{t("add")}</Button>
-        </div>
-
-        <div className="space-y-3">
-          {employeeTasks.map((task) => (
-            <Card
-              key={task.id}
-              className="relative cursor-pointer hover:border-primary/30"
-              onClick={() => setActiveMenuTaskId(activeMenuTaskId === task.id ? null : task.id)}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-ink">{task.title}</p>
-                  <p className="mt-1 text-sm text-muted">{task.description || t("noDescription")}</p>
-                  <p className="mt-2 text-xs text-muted">{formatTaskDate(getTaskDisplayDate(task))}</p>
-                </div>
-
-                <div className="flex shrink-0 flex-col items-end gap-2">
-                  <Badge tone={getTaskTimelineTone(task)}>{getTaskTimelineLabel(task)}</Badge>
-                  <Badge className={`border ${getTaskStatusColor(task.status)}`}>{getTaskStatusLabel(task.status)}</Badge>
-                </div>
-              </div>
-
-              {activeMenuTaskId === task.id && (
-                <div
-                  className="absolute right-4 top-4 z-10 w-44 rounded-xl border border-line bg-surface p-2 shadow-xl"
-                  onClick={(event) => event.stopPropagation()}
-                >
-                  <Button
-                    className="block w-full rounded-lg px-3 py-2 text-left text-sm text-ink hover:bg-surface-2"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      setEditTask(task);
-                      setActiveMenuTaskId(null);
-                    }}
-                  >
-                    {t("edit")}
-                  </Button>
-                  <Button
-                    className="block w-full rounded-lg px-3 py-2 text-left text-sm text-ink hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      handleValidateTask(task);
-                    }}
-                    disabled={task.status === "COMPLETED"}
-                  >
-                    {t("validate")}
-                  </Button>
-                </div>
-              )}
-            </Card>
-          ))}
-
-          {employeeTasks.length === 0 && <p className="text-sm text-muted">{t("noTasks")}</p>}
+          <Button className="shrink-0" onClick={() => setCreateOpen(true)}>{t('add')}</Button>
         </div>
 
         <TaskEditorDialog
           open={createOpen}
           onClose={() => setCreateOpen(false)}
-          onSubmit={handleCreateEmployeeTask}
-          title={t("addTask")}
-          submitLabel={t("create")}
+          onSubmit={handleCreate}
+          title={dialogTitle}
+          submitLabel={t('create')}
+          projects={projects}
+          sections={sections}
           loading={loading}
         />
 
         <TaskEditorDialog
           open={!!editTask}
           onClose={() => setEditTask(null)}
-          onSubmit={handleEditEmployeeTask}
-          title={t("editTask")}
-          submitLabel={t("save")}
+          onSubmit={handleEdit}
+          title={t('editTask')}
+          submitLabel={t('save')}
           initialValues={editTask || undefined}
+          projects={projects}
+          sections={sections}
           loading={loading}
         />
-      </div>
-    );
-  }
 
-  if (isSuperAdmin) {
-    return (
-      <div>
-        <div className="mb-6">
-          <Title as="h1" variant="page" className="mb-1">
-            {t("tasks")}
-          </Title>
-          <p className="text-sm text-muted">{t("selectEmployeeTasks")}</p>
-        </div>
-
-        <div className="mb-4 flex justify-end">
-          <Button onClick={() => setSuperCreateOpen(true)}>{t("createTask")}</Button>
-        </div>
-        <TaskEditorDialog
-          open={superCreateOpen}
-          onClose={() => setSuperCreateOpen(false)}
-          onSubmit={handleSuperAdminCreate}
-          title={t("createTaskForEmployee")}
-          submitLabel={t("assignTask")}
-          assignees={employees}
-          loading={loading}
-        />
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {employees.map((employee) => (
-            <Link key={employee.uid} to={`/taches/employe/${employee.uid}`}>
-              <Card className="h-full transition hover:-translate-y-0.5 hover:border-primary/30">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-medium text-ink">{employee.name}</p>
-                    <p className="mt-1 text-xs text-muted">Matricule : {employee.matricule || "—"}</p>
-                  </div>
-                  <Badge tone={employee.role === "MANAGER" ? "info" : "neutral"}>{employee.role}</Badge>
+        <div className="space-y-3">
+          {employeeTasks.map((task) => (
+            <Card key={task.id} className="cursor-pointer hover:border-primary/30" onClick={() => setSelectedTask(task)}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-ink">{task.title}</p>
+                  <p className="mt-1 text-sm text-muted">{task.description || t('noDescription')}</p>
+                  <p className="mt-2 text-xs text-muted">{formatTaskDate(getTaskDisplayDate(task))}</p>
                 </div>
-              </Card>
-            </Link>
+                <div className="flex shrink-0 flex-col items-end gap-2">
+                  <Badge tone={getTaskTimelineTone(task)}>{getTaskTimelineLabel(task)}</Badge>
+                  <Badge className={`border ${getTaskStatusColor(task.status)}`}>{getTaskStatusLabel(task.status)}</Badge>
+                </div>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2 text-[10px] text-muted">
+                {task.projectName && <span>{t('project')} : {task.projectName}</span>}
+                {task.sectionName && <span>· {copy(t, 'section', 'Section', 'Section')} : {task.sectionName}</span>}
+                {task.department && <span>· {String(task.department).replace(/^DEPARTMENT_/i, '')}</span>}
+              </div>
+            </Card>
           ))}
-
-          {employees.length === 0 && <p className="text-sm text-muted">{t("noEmployeesFound")}</p>}
+          {!employeeTasks.length && <p className="text-sm text-muted">{t('noTasks')}</p>}
         </div>
+
+        <TaskDetailsDialog open={!!selectedTask} onClose={() => setSelectedTask(null)} task={selectedTask} title={t('taskDetails')} />
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-6">
-        <Title as="h1" variant="page" className="mb-1">
-          {t("tasks")}
-        </Title>
-        <p className="text-sm text-muted">{t("manageTasks")}</p>
+    <div className="mx-auto w-full max-w-7xl pb-10">
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0 flex-1">
+          <Title as="h1" variant="page" className="mb-1">{t('tasks')}</Title>
+          <p className="text-sm text-muted">{t('manageTasks')}</p>
+        </div>
+        <Button onClick={() => setCreateOpen(true)}>{t('createTask')}</Button>
       </div>
 
-      <Card className="mb-8">
-        <form onSubmit={handleManagerCreate} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <Input
-            id="title"
-            label={t("title")}
-            value={managerForm.title}
-            onChange={(event) => setManagerForm({ ...managerForm, title: event.target.value })}
-            placeholder="Nouvelle tâche"
-            required
-          />
+      <TaskEditorDialog
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={handleCreate}
+        title={dialogTitle}
+        submitLabel={canAssign ? t('assignTask') : t('create')}
+        assignees={employees}
+        projects={projects}
+        sections={sections}
+        loading={loading}
+      />
 
-          <div className="md:col-span-2">
-            <label className="mb-1.5 block text-sm font-medium text-ink/70" htmlFor="description">
-              {t("description")}
-            </label>
-            <Textarea
-              id="description"
-              value={managerForm.description}
-              onChange={(event) => setManagerForm({ ...managerForm, description: event.target.value })}
-              placeholder="Décris rapidement la tâche"
-              rows={4}
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-ink/70">{t("employee")}</label>
-            <Select
-              value={managerForm.assigneeId}
-              onChange={(event) => setManagerForm({ ...managerForm, assigneeId: event.target.value })}
-              options={[
-                { value: "", label: t("employeeChoice") },
-                ...employees.map((employee) => ({ value: employee.uid, label: employee.name })),
-              ]}
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-ink/70">{t("priority")}</label>
-            <Select
-              value={managerForm.priority}
-              onChange={(event) => setManagerForm({ ...managerForm, priority: event.target.value })}
-              options={PRIORITY_OPTIONS}
-            />
-          </div>
-
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-ink/70">{t("project")}</label>
-            <Select
-              value={managerForm.projectId}
-              onChange={(event) => setManagerForm({ ...managerForm, projectId: event.target.value })}
-              options={[
-                { value: "", label: t("withoutProject") },
-                ...projects.map((project) => ({ value: project.id, label: project.name })),
-              ]}
-            />
-          </div>
-
-          <div className="xl:col-span-3">
-            <Button type="submit" loading={loading}>
-              {t("create")}
-            </Button>
-          </div>
-        </form>
-      </Card>
+      <TaskEditorDialog
+        open={!!editTask}
+        onClose={() => setEditTask(null)}
+        onSubmit={handleEdit}
+        title={t('editTask')}
+        submitLabel={t('save')}
+        initialValues={editTask || undefined}
+        assignees={employees}
+        projects={projects}
+        sections={sections}
+        loading={loading}
+      />
 
       <div className="space-y-3">
         {orderedTasks.map((task) => (
           <Card key={task.id} className="cursor-pointer hover:border-primary/30" onClick={() => setSelectedTask(task)}>
             <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <p className="font-medium text-ink">{task.title}</p>
-                <p className="mt-1 text-sm text-muted">{t("assignedTo")} {task.assigneeName || task.assigneeId}</p>
-                {task.projectName && <p className="text-xs text-muted">{t("project")} : {task.projectName}</p>}
+                <p className="mt-1 text-sm text-muted">{t('assignedTo')} {task.assigneeName || task.assigneeId}</p>
+                {task.projectName && <p className="text-xs text-muted">{t('project')} : {task.projectName}</p>}
+                {task.sectionName && <p className="text-xs text-muted">{copy(t, 'section', 'Section', 'Section')} : {task.sectionName}</p>}
                 <p className="mt-2 text-xs text-muted">{formatTaskDate(getTaskDisplayDate(task))}</p>
               </div>
-
               <div className="flex items-center gap-3">
                 <Badge tone={getTaskTimelineTone(task)}>{getTaskTimelineLabel(task)}</Badge>
                 <Badge className={`border ${getTaskStatusColor(task.status)}`}>{getTaskStatusLabel(task.status)}</Badge>
-                <div
-                  onClick={(event) => event.stopPropagation()}
-                  onMouseDown={(event) => event.stopPropagation()}
-                  onKeyDown={(event) => event.stopPropagation()}
-                >
-                  <Select
-                    value={task.status}
-                    onChange={(event) => api.patch(`/tasks/${task.id}/status`, { status: event.target.value }).then(loadData)}
-                    className="!w-auto text-xs"
-                    options={TASK_STATUSES.map((status) => ({ value: status, label: getTaskStatusLabel(status) }))}
-                  />
-                </div>
               </div>
             </div>
           </Card>
         ))}
-
-        {orderedTasks.length === 0 && <p className="text-sm text-muted">{t("noTasks")}</p>}
+        {!orderedTasks.length && <p className="text-sm text-muted">{t('noTasks')}</p>}
       </div>
 
-      <TaskDetailsDialog
-        open={!!selectedTask}
-        onClose={() => setSelectedTask(null)}
-        task={selectedTask}
-        title={t("taskDetails")}
-      />
+      <TaskDetailsDialog open={!!selectedTask} onClose={() => setSelectedTask(null)} task={selectedTask} title={t('taskDetails')} />
     </div>
   );
 }

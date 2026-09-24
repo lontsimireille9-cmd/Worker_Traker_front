@@ -1,0 +1,355 @@
+﻿import { useEffect, useMemo, useState } from "react";
+import { api } from "../services/api";
+import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
+import Button from "../components/ui/Button";
+import Card from "../components/ui/card";
+import Input from "../components/ui/input";
+import Alert from "../components/ui/alert";
+import Title from "../components/ui/title";
+import Badge from "../components/ui/badge";
+import Dialog from "../components/ui/dialog";
+
+export default function Teams() {
+  const { profile } = useAuth();
+  const { t } = useLanguage();
+
+  const [teams, setTeams] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [selectedTeam, setSelectedTeam] = useState(null);
+
+  const [leaderModalOpen, setLeaderModalOpen] = useState(false);
+  const [teamMembersModalOpen, setTeamMembersModalOpen] = useState(false);
+
+  const [form, setForm] = useState({
+    name: "",
+    department: "",
+    leaderId: "",
+    memberIds: [],
+  });
+
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  function load() {
+    api
+      .get("/teams")
+      .then(setTeams)
+      .catch(() => setTeams([]));
+
+    api
+      .get("/employees")
+      .then(setUsers)
+      .catch(() => setUsers([]));
+  }
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function handleCreate(e) {
+    e.preventDefault();
+
+    setError("");
+    setSuccess("");
+    setLoading(true);
+
+    try {
+      await api.post("/teams", form);
+
+      setSuccess("Équipe créée avec succès.");
+
+      setForm({
+        name: "",
+        department: "",
+        leaderId: "",
+        memberIds: [],
+      });
+
+      load();
+    } catch (err) {
+      setError(
+        err.message || "Impossible de créer l’équipe."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const overdueTeams = useMemo(
+    () => teams.filter((team) => team.deadlineReached),
+    [teams]
+  );
+
+  function openLeaderModal(team) {
+    setSelectedTeam(team);
+
+    setForm((current) => ({
+      ...current,
+      leaderId: team?.leaderId || "",
+    }));
+
+    setLeaderModalOpen(true);
+  }
+
+  function openTeamMembers(team) {
+    setSelectedTeam(team);
+    setTeamMembersModalOpen(true);
+  }
+
+  function toggleMember(memberId) {
+    setForm((current) => ({
+      ...current,
+      memberIds: current.memberIds.includes(memberId)
+        ? current.memberIds.filter((id) => id !== memberId)
+        : [...current.memberIds, memberId],
+    }));
+  }
+
+  return (
+    <div>
+      <Title as="h1" variant="page" className="mb-1">
+        {t("teamsAndDepartments")}
+      </Title>
+
+      <p className="text-sm text-muted mb-8">
+        {t("teamsDescription")}
+      </p>
+
+      {profile?.role !== "EMPLOYEE" && (
+        <Card className="mb-8">
+          <form
+            onSubmit={handleCreate}
+            className="flex flex-wrap gap-3 items-end"
+          >
+            <div className="w-52">
+              <Input
+                id="team-name"
+                label={t("teamName")}
+                value={form.name}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    name: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="mb-1.5 text-sm font-medium text-ink/70">
+                {t("teamMembers")}
+              </p>
+
+              <div className="max-h-28 overflow-y-auto rounded-xl border border-line bg-surface-2 p-2">
+                {users.length > 0 ? (
+                  users.map((user) => (
+                    <label
+                      key={user.uid}
+                      className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm hover:bg-surface"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.memberIds.includes(user.uid)}
+                        onChange={() => toggleMember(user.uid)}
+                        className="rounded border-line text-primary focus:ring-primary"
+                      />
+
+                      <span className="truncate">
+                        {user.name || user.email}
+                      </span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="px-2 py-1 text-xs text-muted">
+                    Aucun membre disponible.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="w-52">
+              <Input
+                id="team-dept"
+                label={t("department")}
+                value={form.department}
+                onChange={(e) =>
+                  setForm({
+                    ...form,
+                    department: e.target.value,
+                  })
+                }
+              />
+            </div>
+
+            <div className="w-52">
+              <label className="block text-sm font-medium mb-1.5 text-ink/70">
+                {t("leader")}
+              </label>
+
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => openLeaderModal(null)}
+              >
+                {form.leaderId
+                  ? t("changeLeader")
+                  : t("chooseLeader")}
+              </Button>
+            </div>
+
+            <Button type="submit" loading={loading}>
+              {t("createTeam")}
+            </Button>
+          </form>
+
+          {success && (
+            <Alert type="success" className="mt-4">
+              {success}
+            </Alert>
+          )}
+
+          {error && (
+            <Alert type="danger" className="mt-4">
+              {error}
+            </Alert>
+          )}
+        </Card>
+      )}
+
+      <Card className="mb-6">
+        <p className="text-sm font-medium text-ink">
+          {t("deadlineAlert")}
+        </p>
+
+        <p className="text-sm text-muted mt-1">
+          {overdueTeams.length > 0
+            ? `${overdueTeams.length} équipe(s) présente(nt) un retard ou un livrable non respecté.`
+            : t("noOverdueTeams")}
+        </p>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {teams.map((team) => (
+          <Button
+            key={team.id}
+            type="button"
+            onClick={() => openTeamMembers(team)}
+            className="text-left rounded-xl border border-line bg-surface p-5 shadow-sm hover:shadow-md transition"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-ink">
+                  {team.name}
+                </p>
+
+                <p className="text-xs text-muted mt-1">
+                  Département : {team.department || "—"}
+                </p>
+              </div>
+
+              <Badge
+                tone={
+                  team.deadlineReached
+                    ? "warning"
+                    : "success"
+                }
+              >
+                {team.deadlineReached
+                  ? "Retard"
+                  : "À l’heure"}
+              </Badge>
+            </div>
+
+            <div className="mt-4 flex items-center justify-between text-xs text-muted">
+              <span>
+                {team.memberIds?.length || 0} membre(s)
+              </span>
+
+              <span className="text-primary">
+                {t("viewMembers")}
+              </span>
+            </div>
+          </Button>
+        ))}
+
+        {teams.length === 0 && (
+          <p className="text-sm text-muted">
+            {t("noTeams")}
+          </p>
+        )}
+      </div>
+
+      <Dialog
+        open={leaderModalOpen}
+        onClose={() => setLeaderModalOpen(false)}
+        title={t("chooseLeader")}
+      >
+        <div className="space-y-3">
+          {users.map((user) => (
+            <Button
+              key={user.uid}
+              type="button"
+              onClick={() => {
+                setForm((current) => ({
+                  ...current,
+                  leaderId: user.uid,
+                }));
+
+                setLeaderModalOpen(false);
+              }}
+              className="w-full rounded-lg border border-line bg-surface-2 px-3 py-2 text-left text-sm text-ink hover:bg-surface"
+            >
+              <p className="font-medium">
+                {user.name || user.email || user.uid}
+              </p>
+
+              <p className="text-xs text-muted">
+                {user.role} • {user.email}
+              </p>
+            </Button>
+          ))}
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={teamMembersModalOpen}
+        onClose={() => setTeamMembersModalOpen(false)}
+        title={selectedTeam?.name || "Équipe"}
+      >
+        <div className="space-y-3">
+          {(selectedTeam?.memberIds || []).length > 0 ? (
+            selectedTeam.memberIds.map((memberId) => {
+              const member = users.find(
+                (user) => user.uid === memberId
+              );
+
+              return (
+                <div
+                  key={memberId}
+                  className="rounded-lg border border-line bg-surface-2 px-3 py-2 text-sm text-ink"
+                >
+                  <p className="font-medium">
+                    {member?.name ||
+                      member?.email ||
+                      memberId}
+                  </p>
+
+                  <p className="text-xs text-muted">
+                    {member?.role || "Membre"}
+                  </p>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-sm text-muted">
+              Aucun membre renseigné pour cette équipe.
+            </p>
+          )}
+        </div>
+      </Dialog>
+    </div>
+  );
+}
+

@@ -39,10 +39,10 @@ export default function SidebarNavigation({ onToggle }) {
     { path: "/", label: t("dashboard"), icon: <FaHome /> },
     { path: "/taches", label: t("tasks"), icon: <FaTasks /> },
     ...(isEmployee ? [{ path: "/historique", label: t("history"), icon: <FaHistory /> }] : []),
-    { path: "/equipes", label: t("teams"), icon: <FaLayerGroup /> },
+    { path: "/equipe", label: "Équipes", icon: <FaLayerGroup /> },
+    ...(isManager ? [{ path: "/equipes", label: "Gestion des équipes", icon: <FaUsers /> }] : []),
     { path: "/projets", label: "Projets", icon: <FaProjectDiagram /> },
     { path: "/messages", label: t("messages"), icon: <FaComments /> },
-    { path: "/activite-metier", label: "Activité métier", icon: <FaChartBar /> },
     ...(canManageEmployees ? [{ path: "/employes", label: t("employees"), icon: <FaUsers /> }] : []),
     ...(profile?.role === "SUPER_ADMIN" ? [{ path: "/rapports", label: t("reports"), icon: <FaChartBar /> }] : []),
   ];
